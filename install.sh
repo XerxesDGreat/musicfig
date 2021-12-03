@@ -49,7 +49,7 @@ git_pull() {
 apt_get() {
     [[ "$DOCKER" ]] && return
     echo "[INFO] Installing apt-get packages..."
-    sudo apt-get -y -qq install python-usb mpg123
+    sudo apt-get -y -qq install python3-usb mpg123
 }
 
 pip_install() {
