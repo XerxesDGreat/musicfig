@@ -298,6 +298,8 @@ class Base():
                             command = tags['identifier'][identifier]['command']
                             logger.info('Running command %s' % command)
                             os.system(command)
+                        if ('webhook' in tags['identifier'][identifier]):
+                            webhook.Requests.post(tags['webhook'])
                         if ('spotify' in tags['identifier'][identifier]) and spotify.activated():
                             if current_tag == previous_tag:
                                 self.startLightshow(spotify.resume())
