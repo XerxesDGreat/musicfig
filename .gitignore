@@ -7,3 +7,4 @@ tags.yml
 .DS_Store
 env/
 app/test.py
+venv/*
