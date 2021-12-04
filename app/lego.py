@@ -286,6 +286,8 @@ class Base():
                         pass
 
                     if (identifier in tags['identifier']):
+                        logging.info("identifier is in tags")
+                        logging.info(tags['identifier'])
                         if current_tag == None:
                             previous_tag = identifier
                         else:
