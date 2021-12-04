@@ -22,7 +22,8 @@ class Dimensions():
     def __init__(self):
         try:
            self.dev = self.init_usb()
-        except Exception:
+        except Exception as e:
+            logging.info("failed initialization: %s", e)
             return
 
     def init_usb(self):
@@ -56,7 +57,8 @@ class Dimensions():
 
         try:
             self.dev.write(1, message)
-        except Exception:
+        except Exception as e:
+            logging.info("exception: %s", e)
             pass
 
     def switch_pad(self, pad, colour):
@@ -237,14 +239,22 @@ class Base():
         logger.info('Lightshow is %s' % switch_lights) #("disabled", "enabled")[switch_lights])
         if switch_lights:
             self.base.switch_pad(0,self.GREEN)
+            logging.info("greeen")
         else:
             self.base.switch_pad(0,self.OFF)
+            logging.info("off")
+        i = 0
         while True:
+            i = i + 1
+            if i == 1000:
+                logging.info("loop")
+                i = 0
             tag = self.base.update_nfc()
             if tag:
                 status = tag.split(':')[0]
                 pad = int(tag.split(':')[1])
                 identifier = tag.split(':')[2]
+                logging.info("status: %s, identifier: %s", status, identifier)
                 if status == 'removed':
                     if identifier == current_tag:
                         try:
