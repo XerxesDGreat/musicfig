@@ -8,3 +8,4 @@ tags.yml
 env/
 app/test.py
 venv/*
+*.pyc
