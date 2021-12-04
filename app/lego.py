@@ -101,14 +101,14 @@ class Dimensions():
 class Base():
     def __init__(self):
         self.OFF   = [0,0,0]
-        self.RED   = [255,0,0]
-        self.GREEN = [0,255,0]
-        self.BLUE  = [0,0,255]
-        self.PINK = [255,192,203]
-        self.ORANGE = [255,165,0]
-        self.PURPLE = [255,0,255]
-        self.LBLUE = [255,255,255]
-        self.OLIVE = [128,128,0]
+        self.RED   = [100,0,0]
+        self.GREEN = [0,100,0]
+        self.BLUE  = [0,0,100]
+        self.PINK = [100,75,79]
+        self.ORANGE = [100,64,0]
+        self.PURPLE = [100,0,100]
+        self.LBLUE = [100,100,100]
+        self.OLIVE = [50,50,0]
         self.COLOURS = ['self.RED', 'self.GREEN', 'self.BLUE', 'self.PINK', 
                         'self.ORANGE', 'self.PURPLE', 'self.LBLUE', 'self.OLIVE']
         self.base = self.startLego()
