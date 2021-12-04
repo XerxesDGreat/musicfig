@@ -311,12 +311,14 @@ class Base():
                             logger.info('Running command %s' % command)
                             os.system(command)
                         if ('webhook' in tags['identifier'][identifier]):
-                            logger.info("calling a webhook, url: %s", tags['identifier'][identifier]['webhook'])
                             hook = tags['identifier'][identifier]['webhook']
+                            logger.info("calling a webhook, url: %s", hook)
                             try:
-                                response = webhook.Requests.post(tags['identifier'][identifier]['webhook'])
-                            except Exception as e:
-                                logger.info('failed calling webhook, code: %s, body: %s, error: %s', response.status_code, response.text, e)
+                                logger.info('oooookay')
+                                response = webhook.Requests.post(hook, {})
+                                logger.info(response)
+                            except BaseException as e:
+                                logger.info('failed calling webhook, error: %s', e)
                         if ('spotify' in tags['identifier'][identifier]) and spotify.activated():
                             if current_tag == previous_tag:
                                 self.startLightshow(spotify.resume())
