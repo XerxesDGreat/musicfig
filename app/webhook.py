@@ -14,3 +14,4 @@ class Requests():
                 'Request to %s returned an error %s, the response is:\n%s'
                 % (endpoint, response.status_code, response.text)
             )
+        return response
