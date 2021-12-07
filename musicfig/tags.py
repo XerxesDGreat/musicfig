@@ -108,7 +108,7 @@ class Tags():
         if tag_class is None:
             return tag
 
-        return tag_class(identifier, tag_definition)
+        return tag_class(identifier, **tag_definition)
 
 
     def get_tag_by_identifier(self, identifier):
