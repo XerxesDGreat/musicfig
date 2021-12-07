@@ -81,17 +81,17 @@ class Dimensions():
             logging.info("exception: %s", e)
             pass
 
-    def switch_pad(self, pad, colour):
+    def change_pad_color(self, pad, colour):
         self.send_command([0x55, 0x06, 0xc0, 0x02, pad, colour[0], 
                           colour[1], colour[2],])
         return
 
-    def fade_pad(self, pad, pulse_time, pulse_count, colour):
+    def fade_pad_color(self, pad, pulse_time, pulse_count, colour):
         self.send_command([0x55, 0x08, 0xc2, 0x0f, pad, pulse_time, 
                           pulse_count, colour[0], colour[1], colour[2],])
         return
 
-    def flash_pad(self, pad, on_length, off_length, pulse_count, colour):
+    def flash_pad_color(self, pad, on_length, off_length, pulse_count, colour):
         self.send_command([0x55, 0x09, 0xc3, 0x03, pad, 
                           on_length, off_length, pulse_count, 
                           colour[0], colour[1], colour[1],])
@@ -113,6 +113,7 @@ class Dimensions():
             return DimensionsTagEvent(removed, pad_num, identifier)
         except Exception:
             return
+
 
 class Base():
     def __init__(self, app_context):
@@ -137,9 +138,9 @@ class Base():
         while getattr(self.lightshowThread, "do_run", True) and (time.perf_counter() - t) < duration:
             pad = random.randint(0,2)
             self.colour = random.randint(0,len(self.COLOURS)-1)
-            self.base.switch_pad(pad,eval(self.COLOURS[self.colour]))
+            self.base.change_pad_color(pad,eval(self.COLOURS[self.colour]))
             time.sleep(round(random.uniform(0,0.5), 1))
-        self.base.switch_pad(0,self.OFF)
+        self.base.change_pad_color(0,self.OFF)
 
     def startLightshow(self,duration_ms):
         if switch_lights:
@@ -250,9 +251,9 @@ class Base():
         switch_lights = self.app_context.config["RUN_LIGHT_SHOW_DEFAULT"]
         logger.info('Lightshow is %s' % switch_lights) #("disabled", "enabled")[switch_lights])
         if switch_lights:
-            self.base.switch_pad(0,self.GREEN)
+            self.base.change_pad_color(0,self.GREEN)
         else:
-            self.base.switch_pad(0,self.OFF)
+            self.base.change_pad_color(0,self.OFF)
 
         i = 0
         while True:
@@ -281,7 +282,7 @@ class Base():
                         spotify.pause()
             else:
                 if switch_lights:
-                    self.base.switch_pad(pad = tag_event.pad_num, colour = self.BLUE)
+                    self.base.change_pad_color(pad = tag_event.pad_num, colour = self.BLUE)
 
                 # Reload the tags config file
                 nfc_tags = nfc.load_tags()
@@ -300,7 +301,7 @@ class Base():
 
                 if isinstance(nfc_tag, nfctags.NFCTag):
                     nfc_tag.on_add()
-                    self.base.switch_pad(tag_event.pad_num, nfc_tag.get_pad_color())
+                    self.base.change_pad_color(tag_event.pad_num, nfc_tag.get_pad_color())
                     # Unknown tag. Display UID.
                 
                 else:
@@ -342,7 +343,7 @@ class Base():
                         if duration_ms > 0:
                             self.startLightshow(duration_ms)
                         else:
-                            self.base.flash_pad(pad = tag_event.pad_num, on_length = 10, off_length = 10,
+                            self.base.flash_pad_color(pad = tag_event.pad_num, on_length = 10, off_length = 10,
                                                 pulse_count = 6, colour = self.RED)
                     if 'spotify' in nfc_tag and not spotify.activated():
                         current_tag = previous_tag
