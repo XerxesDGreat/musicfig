@@ -87,10 +87,6 @@ class SlackTag(NFCTag, WebhookMixin):
         self._post_to_url(self.webhook_url, {"text": self.text})
 
 
-
-
-
-
 class Tags():
 
     def __init__(self, app_context=None, should_load_tags=True):
@@ -125,7 +121,7 @@ class Tags():
 
     tag_registry_map = {
         "webhook": WebhookTag,
-
+        "slack": SlackTag,
     }
     def tag_factory(self, identifier, tag_definition):
         # TODO build a composite tag in case we want to do e.g. spotify + webhook;
