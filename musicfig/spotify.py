@@ -52,7 +52,7 @@ def init_cache():
                          duration integer)")
 
 def connectLego():
-    legoThread = threading.Thread(target=lego.Base, args=())
+    legoThread = threading.Thread(target=lego.Base, args=(), kwargs={"app": current_app._get_current_object()})
     legoThread.daemon = True
     legoThread.start()
 

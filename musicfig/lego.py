@@ -116,7 +116,7 @@ class Dimensions():
             return
 
 class Base():
-    def __init__(self):
+    def __init__(self, app):
         self.OFF   = [0,0,0]
         self.RED   = [100,0,0]
         self.GREEN = [0,100,0]
@@ -129,6 +129,7 @@ class Base():
         self.COLOURS = ['self.RED', 'self.GREEN', 'self.BLUE', 'self.PINK', 
                         'self.ORANGE', 'self.PURPLE', 'self.LBLUE', 'self.OLIVE']
         self.base = self.startLego()
+        self.app = app
 
     def randomLightshow(self,duration = 60):
         logger.info("Lightshow started for %s seconds." % duration)
@@ -247,7 +248,7 @@ class Base():
         self.base = Dimensions()
         logger.info("Lego Dimensions base activated.")
         self.initMp3()
-        switch_lights = current_app.config["RUN_LIGHT_SHOW_DEFAULT"]
+        switch_lights = self.app.config["RUN_LIGHT_SHOW_DEFAULT"]
         logger.info('Lightshow is %s' % switch_lights) #("disabled", "enabled")[switch_lights])
         if switch_lights:
             self.base.switch_pad(0,self.GREEN)
