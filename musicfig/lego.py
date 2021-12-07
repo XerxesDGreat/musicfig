@@ -305,44 +305,44 @@ class Base():
                 
                 else:
                     logging.info("identifier is in nfc_tags")
-                    logging.info(nfc_tags['identifier'])
+                    logging.info(nfc_tag)
                     if current_tag == None:
                         previous_tag = tag_event.identifier
                     else:
                         previous_tag = current_tag
                     current_tag = tag_event.identifier
                     # A tag has been matched
-                    if ('playlist' in nfc_tags['identifier'][tag_event.identifier]):
-                        playlist = nfc_tags['identifier'][tag_event.identifier]['playlist']
-                        if ('shuffle' in nfc_tags['identifier'][tag_event.identifier]):
+                    if 'playlist' in nfc_tag:
+                        playlist = nfc_tag['playlist']
+                        if 'shuffle' in nfc_tag:
                             shuffle = True
                         else:
                             shuffle = False
                         self.playPlaylist(playlist, mp3_dir, shuffle)
-                    if ('mp3' in nfc_tags['identifier'][tag_event.identifier]):
-                        filename = nfc_tags['identifier'][tag_event.identifier]['mp3']
+                    if 'mp3' in nfc_tags:
+                        filename = nfc_tag['mp3']
                         self.playMp3(filename, mp3_dir)
-                    if ('slack' in nfc_tags['identifier'][tag_event.identifier]):
-                        webhook.Requests.post(nfc_tags['slack_hook'],{'text': nfc_tags['identifier'][tag_event.identifier]['slack']})
-                    if ('command' in nfc_tags['identifier'][tag_event.identifier]):
-                        command = nfc_tags['identifier'][tag_event.identifier]['command']
+                    if 'slack' in nfc_tag:
+                        webhook.Requests.post(nfc_tags['slack_hook'],{'text': nfc_tag['slack']})
+                    if 'command' in nfc_tag:
+                        command = nfc_tag['command']
                         logger.info('Running command %s' % command)
                         os.system(command)
-                    if ('spotify' in nfc_tags['identifier'][tag_event.identifier]) and spotify.activated():
+                    if 'spotify' in nfc_tag and spotify.activated():
                         if current_tag == previous_tag:
                             self.startLightshow(spotify.resume())
                             continue
                         try:
-                            position_ms = int(nfc_tags['identifier'][tag_event.identifier]['position_ms'])
+                            position_ms = int(nfc_tag['position_ms'])
                         except Exception:
                             position_ms = 0
                         self.stopMp3()
-                        duration_ms = spotify.spotcast(nfc_tags['identifier'][tag_event.identifier]['spotify'],
+                        duration_ms = spotify.spotcast(nfc_tag['spotify'],
                                                         position_ms)
                         if duration_ms > 0:
                             self.startLightshow(duration_ms)
                         else:
                             self.base.flash_pad(pad = tag_event.pad_num, on_length = 10, off_length = 10,
                                                 pulse_count = 6, colour = self.RED)
-                    if ('spotify' in nfc_tags['identifier'][tag_event.identifier]) and not spotify.activated():
+                    if 'spotify' in nfc_tag and not spotify.activated():
                         current_tag = previous_tag
