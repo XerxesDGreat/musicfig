@@ -1,19 +1,21 @@
 #!/usr/bin/env python
 
+from flask import current_app
 from musicfig import webhook
 from mutagen.mp3 import MP3
+
+import binascii
+import glob
+import logging
+import musicfig.mp3player as mp3player
 import musicfig.spotify as spotify
 import musicfig.tags as nfctags
-import binascii
-import logging
 import os
+import random
 import threading
 import time
-import random
 import usb.core
 import usb.util
-import musicfig.mp3player as mp3player
-import glob
 
 logger = logging.getLogger(__name__)
 
@@ -244,10 +246,7 @@ class Base():
         self.base = Dimensions()
         logger.info("Lego Dimensions base activated.")
         self.initMp3()
-        try:
-            switch_lights = tags['lights']
-        except Exception:
-            switch_lights = True
+        switch_lights = current_app.config["RUN_LIGHT_SHOW_DEFAULT"]
         logger.info('Lightshow is %s' % switch_lights) #("disabled", "enabled")[switch_lights])
         if switch_lights:
             self.base.switch_pad(0,self.GREEN)
@@ -282,10 +281,7 @@ class Base():
                     # Reload the tags config file
                     nfc.load_tags()
                     tags = nfc.tags
-                    try:
-                        mp3_dir = tags['mp3_dir'] + '/'
-                    except Exception:
-                        mp3_dir = os.path.dirname(os.path.abspath(__file__)) + '/../music/'
+                    mp3_dir = current_app.config["MP3_DIR"]
                     ##logger.debug(mp3_dir)
 
                     # Stop any current songs and light shows
