@@ -12,21 +12,23 @@ logger = logging.getLogger(__name__)
 
 
 class NFCTag():
-    def __init__(self, identifier):
+    def __init__(self, identifier, required_kwargs=[], **kwargs):
         self.identifier = identifier
+        self._verify_kwargs(required_kwargs, **kwargs)
     
+    def _verify_kwargs(required_kwargs, **kwargs):
+        for required_kwarg in required_kwargs:
+            if required_kwarg not in kwargs:
+                raise KeyError("missing required key '%s'" % required_kwarg)
 
     def on_add(self):
         pass
 
-
     def on_remove(self):
         pass
-
     
     def get_pad_color(self):
         return colors.OFF
-
 
     def should_do_light_show(self):
         return True
@@ -44,11 +46,11 @@ class UnknownTag(NFCTag):
 
 
 class WebhookTag(NFCTag):
+    required_kwargs = ["url"]
+
     def __init__(self, identifier, **kwargs):
-        if 'webhook' not in kwargs:
-            raise KeyError("missing required key 'webhook'")
-        super().__init__(identifier)
-        self.webhook_url = kwargs["webhook"]
+        super().__init__(identifier, WebhookTag.required_kwargs, **kwargs)
+        self.webhook_url = kwargs["url"]
         
     def on_add(self):
         super().on_add()
