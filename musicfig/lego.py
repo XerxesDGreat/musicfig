@@ -328,15 +328,6 @@ class Base():
                         command = nfc_tags['identifier'][tag_event.identifier]['command']
                         logger.info('Running command %s' % command)
                         os.system(command)
-                    if ('webhook' in nfc_tags['identifier'][tag_event.identifier]):
-                        hook = nfc_tags['identifier'][tag_event.identifier]['webhook']
-                        logger.info("calling a webhook, url: %s", hook)
-                        try:
-                            logger.info('oooookay')
-                            response = webhook.Requests.post(hook, {})
-                            logger.info(response)
-                        except BaseException as e:
-                            logger.info('failed calling webhook, error: %s', e)
                     if ('spotify' in nfc_tags['identifier'][tag_event.identifier]) and spotify.activated():
                         if current_tag == previous_tag:
                             self.startLightshow(spotify.resume())

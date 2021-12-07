@@ -34,6 +34,7 @@ class NFCTag():
 
 class UnknownTag(NFCTag):
     def on_add(self):
+        super().on_add()
         # should _probably_ use a logger which is associated with the
         # app, but this is fine for now. Maybe
         logger.info('Discovered new tag: %s' % self.identifier)
@@ -46,9 +47,11 @@ class WebhookTag(NFCTag):
     def __init__(self, identifier, **kwargs):
         if 'webhook' not in kwargs:
             raise KeyError("missing required key 'webhook'")
+        super().__init__(identifier)
         self.webhook_url = kwargs["webhook"]
         
     def on_add(self):
+        super().on_add()
         self._post_to_url(self.webhook_url)
 
     def _post_to_url(self, url, request_body={}):
