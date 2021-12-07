@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-from app import webhook
+from musicfig import webhook
 from mutagen.mp3 import MP3
-import app.spotify as spotify
-import app.tags as nfctags
+import musicfig.spotify as spotify
+import musicfig.tags as nfctags
 import binascii
 import logging
 import os
@@ -12,10 +12,24 @@ import time
 import random
 import usb.core
 import usb.util
-import app.mp3player as mp3player
+import musicfig.mp3player as mp3player
 import glob
 
 logger = logging.getLogger(__name__)
+
+class Pad():
+    def __init__(self, id):
+        self.id = id
+        self.nfc_tag_list = {}
+    
+    
+    def add_nfc_tag(self, identifier, nfc_tag):
+        self.nfc_tag_list.set(identifier, nfc_tag)
+    
+
+    def remove_nfc_tag_by_id(self, identifier):
+        self.nfc_tag_list.pop(identifier)
+
 
 class Dimensions():
 
@@ -237,10 +251,8 @@ class Base():
         logger.info('Lightshow is %s' % switch_lights) #("disabled", "enabled")[switch_lights])
         if switch_lights:
             self.base.switch_pad(0,self.GREEN)
-            logging.info("greeen")
         else:
             self.base.switch_pad(0,self.OFF)
-            logging.info("off")
         i = 0
         while True:
             i = i + 1

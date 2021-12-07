@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-from app import lego
-from app import webhook
+from musicfig import lego
+from musicfig import webhook
 from flask import Blueprint, request, render_template, \
                   flash, g, session, redirect, url_for, \
                   current_app

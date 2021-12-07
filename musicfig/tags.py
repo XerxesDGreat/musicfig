@@ -3,7 +3,7 @@
 import os
 import yaml
 
-from app import colors
+from musicfig import colors
 from pathlib import Path
 
 class Tags():

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from app import webhook
+from musicfig import webhook
 from flask import Flask, render_template
 from logging.config import dictConfig
 import os, sys
