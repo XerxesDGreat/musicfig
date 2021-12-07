@@ -263,7 +263,7 @@ class Base():
                 i = 0
             tag_event = self.base.get_tag_event()
             if not tag_event:
-                pass
+                continue
 
             # status = tag.split(':')[0]
             # pad = int(tag.split(':')[1])
@@ -285,8 +285,7 @@ class Base():
                     self.base.switch_pad(pad = tag_event.pad_num, colour = self.BLUE)
 
                 # Reload the tags config file
-                nfc.load_tags()
-                tags = nfc.tags
+                nfc_tags = nfc.load_tags()
                 mp3_dir = current_app.config["MP3_DIR"]
                 ##logger.debug(mp3_dir)
 
@@ -297,33 +296,41 @@ class Base():
                 except Exception:
                     pass
 
-                if (tag_event.identifier in tags['identifier']):
-                    logging.info("identifier is in tags")
-                    logging.info(tags['identifier'])
+                # nfc_tag could be a dict or an NFCTag object
+                nfc_tag = nfc.get_tag_by_identifier(tag_event.identifier)
+
+                if isinstance(nfc_tag, nfctags.NFCTag):
+                    nfc_tag.on_add()
+                    self.base.switch_pad(tag_event.pad_num, nfc_tag.get_pad_color())
+                    # Unknown tag. Display UID.
+                
+                else:
+                    logging.info("identifier is in nfc_tags")
+                    logging.info(nfc_tags['identifier'])
                     if current_tag == None:
                         previous_tag = tag_event.identifier
                     else:
                         previous_tag = current_tag
                     current_tag = tag_event.identifier
                     # A tag has been matched
-                    if ('playlist' in tags['identifier'][tag_event.identifier]):
-                        playlist = tags['identifier'][tag_event.identifier]['playlist']
-                        if ('shuffle' in tags['identifier'][tag_event.identifier]):
+                    if ('playlist' in nfc_tags['identifier'][tag_event.identifier]):
+                        playlist = nfc_tags['identifier'][tag_event.identifier]['playlist']
+                        if ('shuffle' in nfc_tags['identifier'][tag_event.identifier]):
                             shuffle = True
                         else:
                             shuffle = False
                         self.playPlaylist(playlist, mp3_dir, shuffle)
-                    if ('mp3' in tags['identifier'][tag_event.identifier]):
-                        filename = tags['identifier'][tag_event.identifier]['mp3']
+                    if ('mp3' in nfc_tags['identifier'][tag_event.identifier]):
+                        filename = nfc_tags['identifier'][tag_event.identifier]['mp3']
                         self.playMp3(filename, mp3_dir)
-                    if ('slack' in tags['identifier'][tag_event.identifier]):
-                        webhook.Requests.post(tags['slack_hook'],{'text': tags['identifier'][tag_event.identifier]['slack']})
-                    if ('command' in tags['identifier'][tag_event.identifier]):
-                        command = tags['identifier'][tag_event.identifier]['command']
+                    if ('slack' in nfc_tags['identifier'][tag_event.identifier]):
+                        webhook.Requests.post(nfc_tags['slack_hook'],{'text': nfc_tags['identifier'][tag_event.identifier]['slack']})
+                    if ('command' in nfc_tags['identifier'][tag_event.identifier]):
+                        command = nfc_tags['identifier'][tag_event.identifier]['command']
                         logger.info('Running command %s' % command)
                         os.system(command)
-                    if ('webhook' in tags['identifier'][tag_event.identifier]):
-                        hook = tags['identifier'][tag_event.identifier]['webhook']
+                    if ('webhook' in nfc_tags['identifier'][tag_event.identifier]):
+                        hook = nfc_tags['identifier'][tag_event.identifier]['webhook']
                         logger.info("calling a webhook, url: %s", hook)
                         try:
                             logger.info('oooookay')
@@ -331,26 +338,21 @@ class Base():
                             logger.info(response)
                         except BaseException as e:
                             logger.info('failed calling webhook, error: %s', e)
-                    if ('spotify' in tags['identifier'][tag_event.identifier]) and spotify.activated():
+                    if ('spotify' in nfc_tags['identifier'][tag_event.identifier]) and spotify.activated():
                         if current_tag == previous_tag:
                             self.startLightshow(spotify.resume())
                             continue
                         try:
-                            position_ms = int(tags['identifier'][tag_event.identifier]['position_ms'])
+                            position_ms = int(nfc_tags['identifier'][tag_event.identifier]['position_ms'])
                         except Exception:
                             position_ms = 0
                         self.stopMp3()
-                        duration_ms = spotify.spotcast(tags['identifier'][tag_event.identifier]['spotify'],
+                        duration_ms = spotify.spotcast(nfc_tags['identifier'][tag_event.identifier]['spotify'],
                                                         position_ms)
                         if duration_ms > 0:
                             self.startLightshow(duration_ms)
                         else:
                             self.base.flash_pad(pad = tag_event.pad_num, on_length = 10, off_length = 10,
                                                 pulse_count = 6, colour = self.RED)
-                    if ('spotify' in tags['identifier'][tag_event.identifier]) and not spotify.activated():
+                    if ('spotify' in nfc_tags['identifier'][tag_event.identifier]) and not spotify.activated():
                         current_tag = previous_tag
-                else:
-                    unknown_tag = nfctags.UnknownTag(tag_event.identifier)
-                    # Unknown tag. Display UID.
-                    logger.info('Discovered new tag: %s' % tag_event.identifier)
-                    self.base.switch_pad(tag_event.pad_num, unknown_tag.get_pad_color())
