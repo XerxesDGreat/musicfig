@@ -45,7 +45,11 @@ class Tags():
         """
         tag = self.tags['identifier'].get(identifier)
         tag = self._tags['identifier'].get(identifier, tag)
-        return tag if tag is not None else UnknownTag(identifier)
+        if tag is None:
+            logger.info(self._tags)
+            logger.info(self.tags)
+            tag = UnknownTag(identifier)
+        return tag
 
 
 class NFCTag():
