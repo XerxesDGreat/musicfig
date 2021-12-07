@@ -49,7 +49,7 @@ class WebhookTag(NFCTag):
         self.webhook_url = kwargs["webhook"]
         
     def on_add(self):
-        webhook.Requests.post(self.webhook_url)
+        self._post_to_url(self.webhook_url)
 
     def _post_to_url(self, url, request_body={}):
         try:
@@ -81,9 +81,10 @@ class Tags():
         if (self.last_updated != os.stat(self.tags_file).st_mtime):
             with open(self.tags_file, 'r') as stream:
                 self.tags = yaml.load(stream, Loader=yaml.FullLoader)['identifier']
-                self._tags = {k: Tags.tag_factory(k, v) for (k,v) in self.tags.items()}
-                self._tags = {k: v for (k, v) in self._tags.items() if v is not None}
+            self._tags = {k: Tags.tag_factory(k, v) for (k,v) in self.tags.items()}
+            self._tags = {k: v for (k, v) in self._tags.items() if v is not None}
             self.last_updated = os.stat(self.tags_file).st_mtime
+            logger.info("loaded %s into _tags, %s into tags", len(self._tags), len(self.tags))
 
         return self._tags
     
@@ -107,9 +108,9 @@ class Tags():
         old-style or new-style tags, depending on which store it comes from.
         New style will override old style
         """
-        tag = self._tags['identifier'].get(identifier)
+        tag = self._tags.get(identifier)
         if tag is None:
-            tag = self.tags['identifier'].get(identifier)
+            tag = self.tags.get(identifier)
         if tag is None:
             logger.info(self._tags)
             logger.info(self.tags)
