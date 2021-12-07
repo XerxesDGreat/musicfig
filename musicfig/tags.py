@@ -2,9 +2,12 @@
 
 import os
 import yaml
+import logging
 
 from musicfig import colors
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 class Tags():
 
@@ -31,11 +34,18 @@ class Tags():
                 self._tags = yaml.load(stream, Loader=yaml.FullLoader)
             self.last_updated = os.stat(self.tags_file).st_mtime
             self.tags = self._tags # temporary to keep the two similar
-            return self._tags
+
+        return self._tags
 
 
     def get_tag_by_identifier(self, identifier):
-        return self.tags['identifier'].get(identifier)
+        """
+        Looks everywhere for a tag which is registered. Will return either
+        old-style or new-style tags, depending on which store it comes from
+        """
+        tag = self.tags['identifier'].get(identifier)
+        tag = self._tags['identifier'].get(identifier, tag)
+        return tag if tag is not None else UnknownTag(identifier)
 
 
 class NFCTag():
@@ -60,5 +70,10 @@ class NFCTag():
 
 
 class UnknownTag(NFCTag):
+    def on_add(self):
+        # should _probably_ use a logger which is associated with the
+        # app, but this is fine for now. Maybe
+        logger.info('Discovered new tag: %s' % self.identifier)
+
     def get_pad_color(self):
         return colors.RED
