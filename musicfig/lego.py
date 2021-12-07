@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from collections import namedtuple
 from flask import current_app
 from musicfig import webhook
 from mutagen.mp3 import MP3
@@ -31,6 +32,10 @@ class Pad():
 
     def remove_nfc_tag_by_id(self, identifier):
         self.nfc_tag_list.pop(identifier)
+
+
+# named tuple allows for less string parsing and guessing what goes where
+DimensionsTagEvent = namedtuple("DimensionsTagEvent", ["was_removed", "pad_num", "identifier"])
 
 
 class Dimensions():
@@ -93,7 +98,7 @@ class Dimensions():
                           colour[0], colour[1], colour[1],])
         return
 
-    def update_nfc(self):
+    def get_tag_event(self):
         try:
             inwards_packet = self.dev.read(0x81, 32, timeout = 10)
             bytelist = list(inwards_packet)
@@ -106,11 +111,7 @@ class Dimensions():
             identifier = binascii.hexlify(bytearray(uid_bytes)).decode("utf-8")
             identifier = identifier.replace('000000','')
             removed = bool(bytelist[5])
-            if removed:
-                response = 'removed:%s:%s' % (pad_num, identifier)
-            else:
-                response = 'added:%s:%s' % (pad_num, identifier)
-            return response
+            return DimensionsTagEvent(removed, pad_num, identifier)
         except Exception:
             return
 
@@ -252,99 +253,103 @@ class Base():
             self.base.switch_pad(0,self.GREEN)
         else:
             self.base.switch_pad(0,self.OFF)
+
         i = 0
         while True:
             i = i + 1
             if i == 1000:
                 logging.info("loop")
                 i = 0
-            tag = self.base.update_nfc()
-            if tag:
-                status = tag.split(':')[0]
-                pad = int(tag.split(':')[1])
-                identifier = tag.split(':')[2]
-                logging.info("status: %s, identifier: %s", status, identifier)
-                if status == 'removed':
-                    if identifier == current_tag:
-                        try:
-                            self.lightshowThread.do_run = False
-                            self.lightshowThread.join()
-                        except Exception:
-                            pass
-                        self.pauseMp3()
-                        if spotify.activated():
-                            spotify.pause()
-                if status == 'added':
-                    if switch_lights:
-                        self.base.switch_pad(pad = pad, colour = self.BLUE)
+            tag_event = self.base.get_tag_event()
+            if not tag_event:
+                pass
 
-                    # Reload the tags config file
-                    nfc.load_tags()
-                    tags = nfc.tags
-                    mp3_dir = current_app.config["MP3_DIR"]
-                    ##logger.debug(mp3_dir)
+            # status = tag.split(':')[0]
+            # pad = int(tag.split(':')[1])
+            # identifier = tag.split(':')[2]
+            logging.info(tag_event)
 
-                    # Stop any current songs and light shows
+            if tag_event.was_removed:
+                if tag_event.identifier == current_tag:
                     try:
                         self.lightshowThread.do_run = False
                         self.lightshowThread.join()
                     except Exception:
                         pass
+                    self.pauseMp3()
+                    if spotify.activated():
+                        spotify.pause()
+            else:
+                if switch_lights:
+                    self.base.switch_pad(pad = tag_event.pad_num, colour = self.BLUE)
 
-                    if (identifier in tags['identifier']):
-                        logging.info("identifier is in tags")
-                        logging.info(tags['identifier'])
-                        if current_tag == None:
-                            previous_tag = identifier
-                        else:
-                            previous_tag = current_tag
-                        current_tag = identifier
-                        # A tag has been matched
-                        if ('playlist' in tags['identifier'][identifier]):
-                            playlist = tags['identifier'][identifier]['playlist']
-                            if ('shuffle' in tags['identifier'][identifier]):
-                                shuffle = True
-                            else:
-                                shuffle = False
-                            self.playPlaylist(playlist, mp3_dir, shuffle)
-                        if ('mp3' in tags['identifier'][identifier]):
-                            filename = tags['identifier'][identifier]['mp3']
-                            self.playMp3(filename, mp3_dir)
-                        if ('slack' in tags['identifier'][identifier]):
-                            webhook.Requests.post(tags['slack_hook'],{'text': tags['identifier'][identifier]['slack']})
-                        if ('command' in tags['identifier'][identifier]):
-                            command = tags['identifier'][identifier]['command']
-                            logger.info('Running command %s' % command)
-                            os.system(command)
-                        if ('webhook' in tags['identifier'][identifier]):
-                            hook = tags['identifier'][identifier]['webhook']
-                            logger.info("calling a webhook, url: %s", hook)
-                            try:
-                                logger.info('oooookay')
-                                response = webhook.Requests.post(hook, {})
-                                logger.info(response)
-                            except BaseException as e:
-                                logger.info('failed calling webhook, error: %s', e)
-                        if ('spotify' in tags['identifier'][identifier]) and spotify.activated():
-                            if current_tag == previous_tag:
-                                self.startLightshow(spotify.resume())
-                                continue
-                            try:
-                                position_ms = int(tags['identifier'][identifier]['position_ms'])
-                            except Exception:
-                                position_ms = 0
-                            self.stopMp3()
-                            duration_ms = spotify.spotcast(tags['identifier'][identifier]['spotify'],
-                                                           position_ms)
-                            if duration_ms > 0:
-                                self.startLightshow(duration_ms)
-                            else:
-                                self.base.flash_pad(pad = pad, on_length = 10, off_length = 10,
-                                                    pulse_count = 6, colour = self.RED)
-                        if ('spotify' in tags['identifier'][identifier]) and not spotify.activated():
-                            current_tag = previous_tag
+                # Reload the tags config file
+                nfc.load_tags()
+                tags = nfc.tags
+                mp3_dir = current_app.config["MP3_DIR"]
+                ##logger.debug(mp3_dir)
+
+                # Stop any current songs and light shows
+                try:
+                    self.lightshowThread.do_run = False
+                    self.lightshowThread.join()
+                except Exception:
+                    pass
+
+                if (tag_event.identifier in tags['identifier']):
+                    logging.info("identifier is in tags")
+                    logging.info(tags['identifier'])
+                    if current_tag == None:
+                        previous_tag = tag_event.identifier
                     else:
-                        unknown_tag = nfctags.UnknownTag(identifier)
-                        # Unknown tag. Display UID.
-                        logger.info('Discovered new tag: %s' % identifier)
-                        self.base.switch_pad(pad, unknown_tag.get_pad_color())
+                        previous_tag = current_tag
+                    current_tag = tag_event.identifier
+                    # A tag has been matched
+                    if ('playlist' in tags['identifier'][tag_event.identifier]):
+                        playlist = tags['identifier'][tag_event.identifier]['playlist']
+                        if ('shuffle' in tags['identifier'][tag_event.identifier]):
+                            shuffle = True
+                        else:
+                            shuffle = False
+                        self.playPlaylist(playlist, mp3_dir, shuffle)
+                    if ('mp3' in tags['identifier'][tag_event.identifier]):
+                        filename = tags['identifier'][tag_event.identifier]['mp3']
+                        self.playMp3(filename, mp3_dir)
+                    if ('slack' in tags['identifier'][tag_event.identifier]):
+                        webhook.Requests.post(tags['slack_hook'],{'text': tags['identifier'][tag_event.identifier]['slack']})
+                    if ('command' in tags['identifier'][tag_event.identifier]):
+                        command = tags['identifier'][tag_event.identifier]['command']
+                        logger.info('Running command %s' % command)
+                        os.system(command)
+                    if ('webhook' in tags['identifier'][tag_event.identifier]):
+                        hook = tags['identifier'][tag_event.identifier]['webhook']
+                        logger.info("calling a webhook, url: %s", hook)
+                        try:
+                            logger.info('oooookay')
+                            response = webhook.Requests.post(hook, {})
+                            logger.info(response)
+                        except BaseException as e:
+                            logger.info('failed calling webhook, error: %s', e)
+                    if ('spotify' in tags['identifier'][tag_event.identifier]) and spotify.activated():
+                        if current_tag == previous_tag:
+                            self.startLightshow(spotify.resume())
+                            continue
+                        try:
+                            position_ms = int(tags['identifier'][tag_event.identifier]['position_ms'])
+                        except Exception:
+                            position_ms = 0
+                        self.stopMp3()
+                        duration_ms = spotify.spotcast(tags['identifier'][tag_event.identifier]['spotify'],
+                                                        position_ms)
+                        if duration_ms > 0:
+                            self.startLightshow(duration_ms)
+                        else:
+                            self.base.flash_pad(pad = tag_event.pad_num, on_length = 10, off_length = 10,
+                                                pulse_count = 6, colour = self.RED)
+                    if ('spotify' in tags['identifier'][tag_event.identifier]) and not spotify.activated():
+                        current_tag = previous_tag
+                else:
+                    unknown_tag = nfctags.UnknownTag(tag_event.identifier)
+                    # Unknown tag. Display UID.
+                    logger.info('Discovered new tag: %s' % tag_event.identifier)
+                    self.base.switch_pad(tag_event.pad_num, unknown_tag.get_pad_color())
