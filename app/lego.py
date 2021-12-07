@@ -227,8 +227,6 @@ class Base():
         previous_tag = None
         mp3state = None
         nfc = nfctags.Tags()
-        nfc.load_tags()
-        tags = nfc.tags
         self.base = Dimensions()
         logger.info("Lego Dimensions base activated.")
         self.initMp3()
@@ -338,6 +336,7 @@ class Base():
                         if ('spotify' in tags['identifier'][identifier]) and not spotify.activated():
                             current_tag = previous_tag
                     else:
+                        unknown_tag = nfctags.UnknownTag(identifier)
                         # Unknown tag. Display UID.
                         logger.info('Discovered new tag: %s' % identifier)
-                        self.base.switch_pad(pad, self.RED)
+                        self.base.switch_pad(pad, unknown_tag.get_pad_color())
