@@ -128,8 +128,8 @@ class Base():
         self.OLIVE = [50,50,0]
         self.COLOURS = ['self.RED', 'self.GREEN', 'self.BLUE', 'self.PINK', 
                         'self.ORANGE', 'self.PURPLE', 'self.LBLUE', 'self.OLIVE']
-        self.base = self.startLego()
         self.app = app
+        self.base = self.startLego()
 
     def randomLightshow(self,duration = 60):
         logger.info("Lightshow started for %s seconds." % duration)
