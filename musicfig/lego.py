@@ -115,7 +115,7 @@ class Dimensions():
             return
 
 class Base():
-    def __init__(self, app):
+    def __init__(self, app_context):
         self.OFF   = [0,0,0]
         self.RED   = [100,0,0]
         self.GREEN = [0,100,0]
@@ -127,7 +127,7 @@ class Base():
         self.OLIVE = [50,50,0]
         self.COLOURS = ['self.RED', 'self.GREEN', 'self.BLUE', 'self.PINK', 
                         'self.ORANGE', 'self.PURPLE', 'self.LBLUE', 'self.OLIVE']
-        self.app = app
+        self.app_context = app_context
         self.base = self.startLego()
 
     def randomLightshow(self,duration = 60):
@@ -243,11 +243,11 @@ class Base():
         current_tag = None
         previous_tag = None
         mp3state = None
-        nfc = nfctags.Tags()
+        nfc = nfctags.Tags(self.app_context)
         self.base = Dimensions()
         logger.info("Lego Dimensions base activated.")
         self.initMp3()
-        switch_lights = self.app.config["RUN_LIGHT_SHOW_DEFAULT"]
+        switch_lights = self.app_context.config["RUN_LIGHT_SHOW_DEFAULT"]
         logger.info('Lightshow is %s' % switch_lights) #("disabled", "enabled")[switch_lights])
         if switch_lights:
             self.base.switch_pad(0,self.GREEN)
@@ -285,7 +285,7 @@ class Base():
 
                 # Reload the tags config file
                 nfc_tags = nfc.load_tags()
-                mp3_dir = self.app.config["MP3_DIR"]
+                mp3_dir = self.app_context.config["MP3_DIR"]
                 ##logger.debug(mp3_dir)
 
                 # Stop any current songs and light shows
