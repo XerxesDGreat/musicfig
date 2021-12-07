@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from collections import namedtuple
-from flask import current_app
 from musicfig import webhook
 from mutagen.mp3 import MP3
 
@@ -286,7 +285,7 @@ class Base():
 
                 # Reload the tags config file
                 nfc_tags = nfc.load_tags()
-                mp3_dir = current_app.config["MP3_DIR"]
+                mp3_dir = self.app.config["MP3_DIR"]
                 ##logger.debug(mp3_dir)
 
                 # Stop any current songs and light shows
