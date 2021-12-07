@@ -96,7 +96,7 @@ class Tags():
         tag = None
         for k, v in tag_definition.items():
             if k in Tags.tag_registry_map:
-                tag = Tags.tag_registry_map[k](identifier, tag_definition)
+                tag = Tags.tag_registry_map[k](identifier, **tag_definition)
                 break
         return tag
 
