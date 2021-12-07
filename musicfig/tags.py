@@ -83,26 +83,32 @@ class Tags():
         """
         if (self.last_updated != os.stat(self.tags_file).st_mtime):
             with open(self.tags_file, 'r') as stream:
-                self.tags = yaml.load(stream, Loader=yaml.FullLoader)['identifier']
+                self.tags = yaml.load(stream, Loader=yaml.FullLoader)
             self._tags = {k: Tags.tag_factory(k, v) for (k,v) in self.tags.items()}
             self._tags = {k: v for (k, v) in self._tags.items() if v is not None}
             self.last_updated = os.stat(self.tags_file).st_mtime
-            logger.info("loaded %s into _tags, %s into tags", len(self._tags), len(self.tags))
+            logger.info("loaded %s into new form of tags, %s into old form of", len(self._tags), len(self.tags))
 
         return self._tags
     
 
     tag_registry_map = {
-        "webhook": WebhookTag
+        "webhook": WebhookTag,
+
     }
     def tag_factory(identifier, tag_definition):
-        # TODO build a composite tag in case we want to do e.g. spotify + webhook
+        # TODO build a composite tag in case we want to do e.g. spotify + webhook;
+        # perhaps do a list of types or something?
         tag = None
-        for k, v in tag_definition.items():
-            if k in Tags.tag_registry_map:
-                tag = Tags.tag_registry_map[k](identifier, **tag_definition)
-                break
-        return tag
+        tag_type = tag_definition.get("type")
+        if tag_type is None:
+            return tag
+        
+        tag_class = Tags.tag_registry_map.get(tag_type)
+        if tag_class is None:
+            return tag
+
+        return tag_class(identifier, tag_definition)
 
 
     def get_tag_by_identifier(self, identifier):
