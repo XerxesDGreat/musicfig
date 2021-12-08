@@ -3,6 +3,7 @@
 import os
 import yaml
 import logging
+import xled
 
 from musicfig import colors
 from musicfig import webhook
@@ -85,6 +86,63 @@ class SlackTag(NFCTag, WebhookMixin):
     def on_add(self):
         super().on_add()
         self._post_to_url(self.webhook_url, {"text": self.text})
+
+
+class TwinklyTag(NFCTag):
+    control_interface = None
+    required_kwargs = ["pattern"]
+
+    def __init__(self, identifier, app_context=None, **kwargs):
+        super().__init__(
+            identifier,
+            required_kwargs=TwinklyTag.required_kwargs,
+            app_context=app_context,
+            **kwargs
+        )
+        self.pattern_dir = app_context.config.get("TWINKLY_PATTERN_DIR",
+            os.path.join("..", "assets", "twinkly_patterns"))
+        self.pattern = kwargs["pattern"]
+
+    def _get_control_interface(self):
+        if TwinklyTag.control_interface is not None:
+            return TwinklyTag.control_interface
+        
+        ip_address = self.app_context.config.get("TWINKLY_IP_ADDRESS")
+        mac_address = self.app_context.config.get("TWINKLY_MAC_ADDRESS")
+        if ip_address and mac_address:
+            TwinklyTag.control_interface = xled.ControlInterface(ip_address, mac_address)
+        else:
+            logger.warning("Need config values to initialize Twinkly")
+
+        return TwinklyTag.control_interface
+    
+    def on_add(self):
+        """
+        pattern is set tree mode to off, send movie, update effects settings, and set tree mode to on
+        """
+        pattern_file = os.path.join(self.pattern_dir, self.pattern)
+        if not os.path.isfile(pattern_file):
+            logger.warning("Requested pattern %s does not exist at %s", self.pattern, pattern_file)
+            return
+
+        ctrl = self._get_control_interface()
+
+        # we'll need these for calculations
+        num_leds = ctrl.get_device_info()['number_of_led']
+        bytes_per_frame = num_leds * 3
+
+        # do the tree
+        ctrl.set_mode("off")
+        with open(pattern_file, 'rb') as f:
+            ctrl.set_led_movie_full(f)
+            
+            # also need the size of the file
+            len_bytes = len(f.read())
+        
+        # calc num frames
+        num_frames = len_bytes // bytes_per_frame
+        ctrl.set_led_movie_config(40, num_frames, num_leds)
+        ctrl.set_mode("movie")
 
 
 class Tags():

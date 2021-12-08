@@ -8,3 +8,4 @@ requests
 mpg123
 mutagen
 unidecode
+xled==0.7.0
