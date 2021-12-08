@@ -323,8 +323,6 @@ class Base():
                     if 'mp3' in nfc_tags:
                         filename = nfc_tag['mp3']
                         self.playMp3(filename, mp3_dir)
-                    if 'slack' in nfc_tag:
-                        webhook.Requests.post(nfc_tags['slack_hook'],{'text': nfc_tag['slack']})
                     if 'command' in nfc_tag:
                         command = nfc_tag['command']
                         logger.info('Running command %s' % command)
