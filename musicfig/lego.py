@@ -9,7 +9,7 @@ import glob
 import logging
 import musicfig.mp3player as mp3player
 import musicfig.spotify as spotify
-import musicfig.tags as nfctags
+import musicfig.nfc_tag as nfc_tag
 import os
 import random
 import threading
@@ -244,7 +244,7 @@ class Base():
         current_tag = None
         previous_tag = None
         mp3state = None
-        nfc = nfctags.Tags(self.app_context)
+        nfc = nfc_tag.TagManager(self.app_context)
         self.base = Dimensions()
         logger.info("Lego Dimensions base activated.")
         self.initMp3()

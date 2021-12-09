@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 
-import os
-import yaml
+import json
 import logging
+import os
+import sqlite3
+import time
 import xled
+import yaml
 
-from musicfig import colors
-from musicfig import webhook
+from flask_sqlalchemy import SQLAlchemy
+from musicfig import colors, webhook
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -154,7 +157,74 @@ class TwinklyTag(NFCTag):
         logger.info("Twinkly - %s", r.data)
 
 
-class Tags():
+class NFCTagStore():
+
+
+    def __init__(self, app_context):
+        self.db_uri = app_context.config.get('SQLITE_URI')
+        self.db_conn = sqlite3.connect(self.db_uri, check_same_thread=False)
+        self.cursor = self.db_conn.cursor()
+        self.create_table()
+
+
+    def create_table(self):
+        query = "CREATE TABLE IF NOT EXISTS nfc_tags (\
+                id text, \
+                name text, \
+                description text, \
+                type text, \
+                attr text, \
+                last_updated integer \
+            )"
+        self.cursor.execute(query)
+        self.db_conn.commit()
+    
+
+    def get_last_updated_time(self):
+        query = "SELECT last_updated\
+                    FROM nfc_tags\
+                    ORDER BY last_updated DESC\
+                    LIMIT 1"
+        last_updated_db = self.cursor.execute(query).fetchone()
+        if last_updated_db is None:
+            last_updated_db = 0
+        return last_updated_db
+    
+
+    def populate_from_dict(self, nfc_tag_dict):
+        """
+        Expects nfc tag dict with the keys as unique identifiers and the
+        values as the configuration information. This will be parsed and
+        certain keywords will be pulled into explicit fields and removed
+        from the config:
+        - name or _name (the former overrules) -> `name`
+        - desc or description (the latter overrules) -> `description`
+        - type -> `type`
+        Everything that is remaining will be encoded as json and stored in 
+        the `attr` field
+        """
+        def convert_one(k, v, curtime):
+            id = k
+            # these double-pops actually pull both of the keys from the dictionary;
+            # this is intentional as we don't want them to stick around afterward
+            name = v.pop("name", v.pop("_name", None))
+            desc = v.pop("description", v.pop("desc", None))
+            nfc_tag_type = v.get("type", None)
+            attr = json.dumps(v)
+            return (id, name, desc, nfc_tag_type, attr, curtime)
+
+        cur_time = NFCTagStore.get_current_timestamp()
+        replacement_list = [convert_one(k, v, cur_time) for (k, v) in nfc_tag_dict.items()]
+        
+        query = "INSERT OR REPLACE INTO nfc_tags VALUES (?, ?, ?, ?, ?, ?)"
+        self.cursor.executemany(query, replacement_list)
+
+
+    def get_current_timestamp():
+        return int(time.time())
+
+
+class TagManager():
 
     tag_registry_map = {
         "webhook": WebhookTag,
