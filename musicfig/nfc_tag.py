@@ -241,9 +241,29 @@ class TagManager():
         self._tags = {}
         self.nfc_tag_store = NFCTagStore(app_context)
 
+        if self.should_import_file():
+            self.import_file()
+
         if should_load_tags:
             self.load_tags()
 
+    def should_import_file(self):
+        """
+        This is not a super smart way of doing things, but it should work. tl;dr,
+        if the modified time of the yaml file is more recent than the most recent
+        modified time of any nfc_tag in the db, then we should update.
+
+        *** note, this is destructive in nature; yaml will completely overwrite
+        the database ***
+        """
+        last_db_update = self.nfc_tag_store.get_last_updated_time()
+        last_file_update = os.stat(self.nfc_tags_file).st_mtime
+        logger.info("last db updated: %s, last file updated: %s", last_db_update, last_file_update)
+        return False
+    
+
+    def import_file(self):
+        pass
 
     def load_tags(self):
         """
