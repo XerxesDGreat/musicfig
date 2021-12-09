@@ -153,6 +153,12 @@ class TwinklyTag(NFCTag):
 
 class Tags():
 
+    tag_registry_map = {
+        "webhook": WebhookTag,
+        "slack": SlackTag,
+        "twinkly": TwinklyTag,
+    }
+
     def __init__(self, app_context=None, should_load_tags=True):
         self.app_context = app_context
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -181,12 +187,6 @@ class Tags():
             logger.info("loaded %s into new form of tags, %s into old form of", len(self._tags), len(self.tags))
 
         return self._tags
-    
-
-    tag_registry_map = {
-        "webhook": WebhookTag,
-        "slack": SlackTag,
-    }
     def tag_factory(self, identifier, tag_definition):
         # TODO build a composite tag in case we want to do e.g. spotify + webhook;
         # perhaps do a list of types or something?
