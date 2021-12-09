@@ -134,21 +134,24 @@ class TwinklyTag(NFCTag):
 
         # do the tree
         r = ctrl.set_mode("off")
-        logger.info("Twinkly - %s", r)
+        logger.info("Twinkly - %s", r.data)
         with open(pattern_file, 'rb') as f:
             r = ctrl.set_led_movie_full(f)
-            logger.info("Twinkly - %s", r)
+            logger.info("Twinkly - %s", r.data)
             
             # also need the size of the file
-            len_bytes = len(f.read())
+            num_frames = r.data.get("frames_number")
         
         # calc num frames
-        num_frames = len_bytes // bytes_per_frame
+        if num_frames is None:
+            file_size = os.path.getsize(pattern_file)
+            num_frames = int(file_size / bytes_per_frame)
+
         logger.info("Twinkly - movie config - num_leds: %s, bytes per frame: %s, num_frames: %s", num_leds, bytes_per_frame, num_frames)
         r = ctrl.set_led_movie_config(40, num_frames, num_leds)
-        logger.info("Twinkly - %s", r)
+        logger.info("Twinkly - %s", r.data)
         r = ctrl.set_mode("movie")
-        logger.info("Twinkly - %s", r)
+        logger.info("Twinkly - %s", r.data)
 
 
 class Tags():
