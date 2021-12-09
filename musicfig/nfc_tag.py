@@ -169,7 +169,7 @@ class NFCTagStore():
 
     def create_table(self):
         query = "CREATE TABLE IF NOT EXISTS nfc_tags (\
-                id text, \
+                id text UNIQUE, \
                 name text, \
                 description text, \
                 type text, \
@@ -203,7 +203,7 @@ class NFCTagStore():
         Everything that is remaining will be encoded as json and stored in 
         the `attr` field
         """
-        before = self.cursor.execute("SELECT COUNT(*) FROM nfc_tags")
+        before = self.cursor.execute("SELECT COUNT(*) FROM nfc_tags").fetchone()
         def convert_one(k, v, curtime):
             id = k
             # these double-pops actually pull both of the keys from the dictionary;
@@ -219,7 +219,7 @@ class NFCTagStore():
         
         query = "INSERT OR REPLACE INTO nfc_tags VALUES (?, ?, ?, ?, ?, ?)"
         self.cursor.executemany(query, replacement_list)
-        after = self.cursor.execute("SELECT COUNT(*) FROM nfc_tags")
+        after = self.cursor.execute("SELECT COUNT(*) FROM nfc_tags").fetchone()
         logger.info("added %s tags, creating %s new rows", len(nfc_tag_dict.items()), after - before)
         # self.conn.commit()
         
