@@ -8,7 +8,6 @@ import time
 import xled
 import yaml
 
-from flask_sqlalchemy import SQLAlchemy
 from musicfig import colors, webhook
 from pathlib import Path
 
@@ -186,9 +185,9 @@ class NFCTagStore():
                     ORDER BY last_updated DESC\
                     LIMIT 1"
         last_updated_db = self.cursor.execute(query).fetchone()
-        if last_updated_db is None:
-            last_updated_db = 0
-        return last_updated_db
+
+        # the response from the db comes back as a tuple, so let's get the first item there
+        return 0 if last_updated_db is None else last_updated_db[0]
     
 
     def populate_from_dict(self, nfc_tag_dict):
