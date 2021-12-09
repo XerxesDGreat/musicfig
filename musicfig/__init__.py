@@ -35,6 +35,7 @@ logging.config.dictConfig({
         'handlers': ['console','logfile']
     }
 })
+
 logging.getLogger('werkzeug').disabled = True
 logger = logging.getLogger(__name__)
 os.environ['WERKZEUG_RUN_MAIN'] = 'true'
@@ -58,23 +59,22 @@ app_version = "heavy development"
 
 db = SQLAlchemy()
 
-def create_app():
+def init_app():
     app = Flask(__name__,
                 static_url_path='', 
                 static_folder='templates')
+    app.config.from_object('config')
+
+    db.init_app(app)
 
     @app.errorhandler(404)
     def not_found(error):
         return render_template('404.html'), 404
 
-    app.config.from_object('config')
-
-    db.init_app(app)
-
     with app.app_context(), app.test_request_context():
-        from musicfig.spotify import spotify as spotify_module
-
         db.create_all()
+
+        from musicfig.spotify import spotify as spotify_module
 
         app.register_blueprint(spotify_module)
 

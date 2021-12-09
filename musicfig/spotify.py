@@ -8,7 +8,7 @@ import tekore as tk
 import threading
 import unidecode
 
-from . import db
+from .models import db, Song
 from flask import Blueprint, request, render_template, \
                   session, redirect, current_app
 from musicfig import lego
@@ -33,40 +33,28 @@ cache_lock = threading.Lock()
 last_played = 'unknown'
 last_out = ''
 
-class Song(db.Model):
-    __tablename__ = 'songs'
-    id = db.Column(db.String(40), primary_key=True)
-    image_url = db.Column(db.Text, nullable=True)
-    artist = db.Column(db.String(40), nullable=False)
-    name = db.Column(db.String(40),nullable=False)
-    duration_ms = db.Column(db.Integer)
-
-    def __repr__(self):
-        return '<Song %s - %s>' % (self.artist, self.name)
-
-
-def init_cache():
-    """Use a database to store song meta data to reduce API calls.
-    """
-    global connection
-    global cursor
-    cache_dir = current_dir + '/.cache'
-    os.makedirs(cache_dir, exist_ok=True)
-    connection = sqlite3.connect(cache_dir + '/songs.db', check_same_thread=False)
-    cursor = connection.cursor()
-    cursor.execute("create table if not exists song \
-                        (id text, \
-                         image_url text, \
-                         artist text, \
-                         name text, \
-                         duration integer)")
+# def init_cache():
+#     """Use a database to store song meta data to reduce API calls.
+#     """
+#     global connection
+#     global cursor
+#     cache_dir = current_dir + '/.cache'
+#     os.makedirs(cache_dir, exist_ok=True)
+#     connection = sqlite3.connect(cache_dir + '/songs.db', check_same_thread=False)
+#     cursor = connection.cursor()
+#     cursor.execute("create table if not exists song \
+#                         (id text, \
+#                          image_url text, \
+#                          artist text, \
+#                          name text, \
+#                          duration integer)")
 
 def connectLego():
     legoThread = threading.Thread(target=lego.Base, args=(), kwargs={"app_context": current_app._get_current_object()})
     legoThread.daemon = True
     legoThread.start()
 
-init_cache()
+#init_cache()
 connectLego()
 
 def activated():
