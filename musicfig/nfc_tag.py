@@ -235,22 +235,19 @@ class TagManager():
 
     def __init__(self, app_context=None, should_load_tags=True):
         self.app_context = app_context
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        if Path(current_dir + '/../tags.yml').is_file():
-            self.tags_file = current_dir + '/../tags.yml'
-        if Path('/config/tags.yml').is_file():
-            self.tags_file = '/config/tags.yml'
-            
+        self.nfc_tags_file = app_context.config.get("NFC_TAG_FILE")
         self.last_updated = -1
         self.tags = {}
         self._tags = {}
+        self.nfc_tag_store = NFCTagStore(app_context)
 
         if should_load_tags:
             self.load_tags()
 
 
     def load_tags(self):
-        """Load the NFC tag config file if it has changed.
+        """
+        Load the NFC tag config file if it has changed.
         """
         if (self.last_updated != os.stat(self.tags_file).st_mtime):
             with open(self.tags_file, 'r') as stream:
@@ -261,6 +258,8 @@ class TagManager():
             logger.info("loaded %s into new form of tags, %s into old form of", len(self._tags), len(self.tags))
 
         return self._tags
+
+
     def tag_factory(self, identifier, tag_definition):
         # TODO build a composite tag in case we want to do e.g. spotify + webhook;
         # perhaps do a list of types or something?
