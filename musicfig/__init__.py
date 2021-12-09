@@ -39,36 +39,39 @@ logger = logging.getLogger(__name__)
 os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 
 # Check for updates
-stream = os.popen('git tag 2>/dev/null | tail -n 1')
-app_version = stream.read().split('\n')[0]
-if app_version == '':
-    app_version = "(offline mode)"
+# stream = os.popen('git tag 2>/dev/null | tail -n 1')
+# app_version = stream.read().split('\n')[0]
+# if app_version == '':
+#     app_version = "(offline mode)"
 
-VERSION_URL = "https://api.github.com/repos/meltaxa/jukebox-portal/releases"
-try:
-    url = requests.get(VERSION_URL)
-    latest_version = url.json()[0]['tag_name']
+# VERSION_URL = "https://api.github.com/repos/XerxesDGreat/jukebox-portal/releases"
+# try:
+#     url = requests.get(VERSION_URL)
+#     latest_version = url.json()[0]['tag_name']
 
-    if latest_version != app_version:
-      logger.info('Update %s available. Run install.sh to update.' % latest_version)
-except Exception:
-    pass
+#     if latest_version != app_version:
+#       logger.info('Update %s available. Run install.sh to update.' % latest_version)
+# except Exception:
+#     pass
 
-app = Flask(__name__,
-            static_url_path='', 
-            static_folder='templates')
+def create_app():
+    app = Flask(__name__,
+                static_url_path='', 
+                static_folder='templates')
 
-@app.errorhandler(404)
-def not_found(error):
-    return render_template('404.html'), 404
+    @app.errorhandler(404)
+    def not_found(error):
+        return render_template('404.html'), 404
 
-app.config.from_object('config')
+    app.config.from_object('config')
 
-with app.app_context(), app.test_request_context():
-    from musicfig.spotify import spotify as spotify_module
-    from musicfig.jukebox import jukebox as jukebox_module
-    app.register_blueprint(spotify_module)
-    app.register_blueprint(jukebox_module)
-    logger.info('Musicfig %s started.' % app_version)
-    if app.config['CLIENT_ID']:
-        logger.info('To activate Spotify visit: %s' % app.config['REDIRECT_URI'].replace('callback',''))
+    with app.app_context(), app.test_request_context():
+        from musicfig.spotify import spotify as spotify_module
+        #from musicfig.nfc_tag import tag as tag_module
+        app.register_blueprint(spotify_module)
+        #app.register_blueprint(tag_module, url_prefix="tag")
+        logger.info('Musicfig %s started.' % app_version)
+        if app.config['CLIENT_ID']:
+            logger.info('To activate Spotify visit: %s' % app.config['REDIRECT_URI'].replace('callback',''))
+
+    return app

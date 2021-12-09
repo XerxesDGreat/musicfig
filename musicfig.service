@@ -5,8 +5,10 @@
 [Service]
     User=pi
     Group=pi
+    Environment="FLASK_APP=musicfig"
+    Environment="FLASK_ENV=development"
     WorkingDirectory=%MUSICFIG_DIR%
-    ExecStart=%PYTHON_PATH% %MUSICFIG_DIR%/run.py
+    ExecStart=%PYTHON_PATH% -m flask run
 
 [Install]
     WantedBy=multi-user.target
