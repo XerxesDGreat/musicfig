@@ -49,6 +49,12 @@ class UnknownTag(NFCTag):
         return colors.RED
 
 
+class LegacyTag(NFCTag):
+    def __init__(self, identifier, app_context=None, **kwargs):
+        super().__init__(identifier, app_context=app_context)
+        self.definition = kwargs
+
+
 class WebhookMixin():
     def _post_to_url(self, url, request_body={}):
         try:
@@ -162,6 +168,7 @@ class NFCTagStore():
     def __init__(self, app_context):
         self.db_uri = app_context.config.get('SQLITE_URI')
         self.db_conn = sqlite3.connect(self.db_uri, check_same_thread=False)
+        self.db_conn.row_factory = sqlite3.Row
         self.cursor = self.db_conn.cursor()
         self.create_table()
 
@@ -209,7 +216,7 @@ class NFCTagStore():
             # this is intentional as we don't want them to stick around afterward
             name = v.pop("name", v.pop("_name", None))
             desc = v.pop("description", v.pop("desc", None))
-            nfc_tag_type = v.get("type", None)
+            nfc_tag_type = v.pop("type", None)
             attr = json.dumps(v)
             return (id, name, desc, nfc_tag_type, attr, curtime)
 
@@ -227,11 +234,17 @@ class NFCTagStore():
         return int(time.time())
 
     
-    def get_all_tags(self):
+    def get_all_nfc_tags(self):
         query = "SELECT * FROM nfc_tags"
         rows = self.cursor.execute(query).fetchall()
         logger.info(rows)
         return rows
+
+    
+    def get_nfc_tag_by_id(self, id):
+        query = "SELECT * FROM nfc_tags WHERE id = ?"
+        row = self.cursor.execute(query, (id,)).fetchone()
+        return row
 
 
 TAG_REGISTRY_MAP = {
@@ -241,7 +254,6 @@ TAG_REGISTRY_MAP = {
 }
 
 class TagManager():
-
 
     def __init__(self, app_context=None, should_load_tags=True):
         self.app_context = app_context
@@ -256,6 +268,7 @@ class TagManager():
 
         if should_load_tags:
             self.load_tags()
+
 
     def should_import_file(self):
         """
@@ -277,15 +290,18 @@ class TagManager():
             nfc_tag_defs = yaml.load(f, Loader=yaml.FullLoader)
         self.nfc_tag_store.populate_from_dict(nfc_tag_defs)
 
+
+    # we'll keep this, but nothing is using it right now; instead of a local cache
+    # for a file which gets read into memory all the damn time, we can 100% just query
+    # the database
     def load_tags(self):
         """
         Load the NFC tag config file if it has changed.
         """
-        ttttttt = self.nfc_tag_store.get_all_tags()
         if (self.last_updated != os.stat(self.nfc_tags_file).st_mtime):
             with open(self.nfc_tags_file, 'r') as stream:
                 self.tags = yaml.load(stream, Loader=yaml.FullLoader)
-            self._tags = {k: self.tag_factory(k, v) for (k,v) in self.tags.items()}
+            self._tags = {k: self.nfc_tag_factory(k, v) for (k,v) in self.tags.items()}
             self._tags = {k: v for (k, v) in self._tags.items() if v is not None}
             self.last_updated = os.stat(self.nfc_tags_file).st_mtime
             logger.info("loaded %s into new form of tags, %s into old form of", len(self._tags), len(self.tags))
@@ -293,32 +309,39 @@ class TagManager():
         return self._tags
 
 
-    def tag_factory(self, identifier, tag_definition):
+    def nfc_tag_factory(self, id, data, nfc_tag_type=None, name=None, description=None):
         # TODO build a composite tag in case we want to do e.g. spotify + webhook;
         # perhaps do a list of types or something?
-        tag = None
-        tag_type = tag_definition.get("type")
-        if tag_type is None:
-            return tag
+
+        # for this, we want the explicitly provided values to rule; those are the new
+        # style of tags. However, we still need to have the old style around to work with
+        if nfc_tag_type is None:
+            nfc_tag_type = data.get("type")
+
+        if nfc_tag_type is None or TAG_REGISTRY_MAP.get(nfc_tag_type) is None:
+            if name is not None:
+                data["name"] = name
+            if description is not None:
+                data["description"] = description
+            return LegacyTag(id, **data)
         
-        tag_class = TAG_REGISTRY_MAP.get(tag_type)
-        if tag_class is None:
-            return tag
-
-        return tag_class(identifier, app_context=self.app_context, **tag_definition)
+        nfc_tag_class = TAG_REGISTRY_MAP.get(nfc_tag_type)
+        return nfc_tag_class(id, app_context=self.app_context, **data)
 
 
-    def get_tag_by_identifier(self, identifier):
+    def get_nfc_tag_by_id(self, id):
         """
         Looks everywhere for a tag which is registered. Will return either
         old-style or new-style tags, depending on which store it comes from.
         New style will override old style
         """
-        tag = self._tags.get(identifier)
-        if tag is None:
-            tag = self.tags.get(identifier)
-        if tag is None:
-            logger.info(self._tags)
-            logger.info(self.tags)
-            tag = UnknownTag(identifier)
-        return tag
+        row = self.nfc_tag_store.get_nfc_tag_by_id(id)
+        
+        nfc_tag = UnknownTag(id) if row is None else self.nfc_tag_factory(
+            id,
+            row["attr"],
+            nfc_tag_type=row["type"],
+            name=row["name"],
+            description=row["description"])
+        logger.info("built tag of type %s from info %s", type(nfc_tag), row)
+        return nfc_tag

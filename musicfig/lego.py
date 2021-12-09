@@ -284,8 +284,6 @@ class Base():
                 if switch_lights:
                     self.base.change_pad_color(pad = tag_event.pad_num, colour = self.BLUE)
 
-                # Reload the tags config file
-                nfc_tags = nfc.load_tags()
                 mp3_dir = self.app_context.config["MP3_DIR"]
                 ##logger.debug(mp3_dir)
 
@@ -297,7 +295,7 @@ class Base():
                     pass
 
                 # nfc_tag could be a dict or an NFCTag object
-                nfc_tag = nfc.get_tag_by_identifier(tag_event.identifier)
+                nfc_tag = nfc.get_nfc_tag_by_id(tag_event.identifier)
                 logging.info(nfc_tag)
 
                 if isinstance(nfc_tag, NFCTag):
@@ -321,7 +319,7 @@ class Base():
                         else:
                             shuffle = False
                         self.playPlaylist(playlist, mp3_dir, shuffle)
-                    if 'mp3' in nfc_tags:
+                    if 'mp3' in nfc_tag:
                         filename = nfc_tag['mp3']
                         self.playMp3(filename, mp3_dir)
                     if 'command' in nfc_tag:
