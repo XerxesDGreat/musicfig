@@ -149,14 +149,22 @@ def spotcast(spotify_uri,position_ms=0):
         return duration_ms
     return 0
 
-@spotify.route('/', methods=['GET'])
-def main():
+def set_user(new_user):
     global user
-    user = session.get('user', None)
-    if user == None:
-        # Auto login
-        return redirect('/login', 307)
-    return render_template("index.html", user=user)
+    user = new_user
+
+def get_user():
+    global user
+    return user
+
+# @spotify.route('/', methods=['GET'])
+# def main():
+#     global user
+#     user = session.get('user', None)
+#     if user == None:
+#         # Auto login
+#         return redirect('/login', 307)
+#     return render_template("index.html", user=user)
 
 @spotify.route('/login', methods=['GET'])
 def login():
