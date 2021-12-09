@@ -221,7 +221,7 @@ class NFCTagStore():
         self.cursor.executemany(query, replacement_list)
         after = self.cursor.execute("SELECT COUNT(*) FROM nfc_tags").fetchone()
         logger.info("added %s tags; before: %s, after: %s", len(nfc_tag_dict.items()), before, after)
-        self.conn.commit()
+        self.db_conn.commit()
         
 
 
