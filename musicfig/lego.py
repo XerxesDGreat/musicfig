@@ -3,13 +3,13 @@
 from collections import namedtuple
 from musicfig import webhook
 from mutagen.mp3 import MP3
+from musicfig.nfc_tag import TagManager, NFCTag
 
 import binascii
 import glob
 import logging
 import musicfig.mp3player as mp3player
 import musicfig.spotify as spotify
-import musicfig.nfc_tag as nfc_tag
 import os
 import random
 import threading
@@ -244,7 +244,7 @@ class Base():
         current_tag = None
         previous_tag = None
         mp3state = None
-        nfc = nfc_tag.TagManager(self.app_context)
+        nfc = TagManager(self.app_context)
         self.base = Dimensions()
         logger.info("Lego Dimensions base activated.")
         self.initMp3()
@@ -300,7 +300,7 @@ class Base():
                 nfc_tag = nfc.get_tag_by_identifier(tag_event.identifier)
                 logging.info(nfc_tag)
 
-                if isinstance(nfc_tag, nfctags.NFCTag):
+                if isinstance(nfc_tag, NFCTag):
                     logging.info("doing new")
                     nfc_tag.on_add()
                     self.base.change_pad_color(tag_event.pad_num, nfc_tag.get_pad_color())
