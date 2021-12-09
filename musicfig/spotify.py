@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
-import io
 import logging
 import os
-import sqlite3
 import tekore as tk
 import threading
 import unidecode
@@ -32,22 +30,6 @@ cache_lock = threading.Lock()
 
 last_played = 'unknown'
 last_out = ''
-
-# def init_cache():
-#     """Use a database to store song meta data to reduce API calls.
-#     """
-#     global connection
-#     global cursor
-#     cache_dir = current_dir + '/.cache'
-#     os.makedirs(cache_dir, exist_ok=True)
-#     connection = sqlite3.connect(cache_dir + '/songs.db', check_same_thread=False)
-#     cursor = connection.cursor()
-#     cursor.execute("create table if not exists song \
-#                         (id text, \
-#                          image_url text, \
-#                          artist text, \
-#                          name text, \
-#                          duration integer)")
 
 def connectLego():
     legoThread = threading.Thread(target=lego.Base, args=(), kwargs={"app_context": current_app._get_current_object()})
@@ -96,10 +78,7 @@ def resume():
         try:
             tkspotify.playback_resume()
             song = tkspotify.playback_currently_playing()
-            #sp_elapsed = song.progress_ms
-            #sp_id = song.item.id
             song_obj = Song.query.filter(Song.id == song.item.id).first()
-            #cursor.execute("""select duration from song where id = ?;""", (sp_id,))
             sp_remaining = song_obj.duration_ms - song.progress_ms
         except Exception:
             pass
