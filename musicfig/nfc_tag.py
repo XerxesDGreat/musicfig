@@ -220,7 +220,7 @@ class NFCTagStore():
         query = "INSERT OR REPLACE INTO nfc_tags VALUES (?, ?, ?, ?, ?, ?)"
         self.cursor.executemany(query, replacement_list)
         after = self.cursor.execute("SELECT COUNT(*) FROM nfc_tags").fetchone()
-        logger.info("added %s tags, creating %s new rows", len(nfc_tag_dict.items()), after - before)
+        logger.info("added %s tags; before: %s, after: %s", len(nfc_tag_dict.items()), after, before)
         # self.conn.commit()
         
 
