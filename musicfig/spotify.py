@@ -35,7 +35,7 @@ last_out = ''
 
 class Song(db.Model):
     __tablename__ = 'songs'
-    id = db.Column(db.String(40), unique=True, nullable=False)
+    id = db.Column(db.String(40), primary_key=True)
     image_url = db.Column(db.Text, nullable=True)
     artist = db.Column(db.String(40), nullable=False)
     name = db.Column(db.String(40),nullable=False)
