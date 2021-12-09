@@ -298,15 +298,16 @@ class Base():
 
                 # nfc_tag could be a dict or an NFCTag object
                 nfc_tag = nfc.get_tag_by_identifier(tag_event.identifier)
+                logging.info(nfc_tag)
 
                 if isinstance(nfc_tag, nfctags.NFCTag):
+                    logging.info("doing new")
                     nfc_tag.on_add()
                     self.base.change_pad_color(tag_event.pad_num, nfc_tag.get_pad_color())
                     # Unknown tag. Display UID.
                 
                 else:
-                    logging.info("identifier is in nfc_tags")
-                    logging.info(nfc_tag)
+                    logging.info("doing old")
                     if current_tag == None:
                         previous_tag = tag_event.identifier
                     else:

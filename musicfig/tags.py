@@ -120,6 +120,7 @@ class TwinklyTag(NFCTag):
         """
         pattern is set tree mode to off, send movie, update effects settings, and set tree mode to on
         """
+        logger.info("Twinkly - requested pattern %s", self.pattern)
         pattern_file = os.path.join(self.pattern_dir, self.pattern)
         if not os.path.isfile(pattern_file):
             logger.warning("Requested pattern %s does not exist at %s", self.pattern, pattern_file)
@@ -132,17 +133,22 @@ class TwinklyTag(NFCTag):
         bytes_per_frame = num_leds * 3
 
         # do the tree
-        ctrl.set_mode("off")
+        r = ctrl.set_mode("off")
+        logger.info("Twinkly - %s", r)
         with open(pattern_file, 'rb') as f:
-            ctrl.set_led_movie_full(f)
+            r = ctrl.set_led_movie_full(f)
+            logger.info("Twinkly - %s", r)
             
             # also need the size of the file
             len_bytes = len(f.read())
         
         # calc num frames
         num_frames = len_bytes // bytes_per_frame
-        ctrl.set_led_movie_config(40, num_frames, num_leds)
-        ctrl.set_mode("movie")
+        logger.info("Twinkly - movie config - num_leds: %s, bytes per frame: %s, num_frames: %s", num_leds, bytes_per_frame, num_frames)
+        r = ctrl.set_led_movie_config(40, num_frames, num_leds)
+        logger.info("Twinkly - %s", r)
+        r = ctrl.set_mode("movie")
+        logger.info("Twinkly - %s", r)
 
 
 class Tags():
