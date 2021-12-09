@@ -3,7 +3,7 @@
 from collections import namedtuple
 from musicfig import webhook
 from mutagen.mp3 import MP3
-from musicfig.nfc_tag import TagManager, NFCTag
+from musicfig.nfc_tag import LegacyTag, TagManager, NFCTag
 
 import binascii
 import glob
@@ -298,19 +298,23 @@ class Base():
                 nfc_tag = nfc.get_nfc_tag_by_id(tag_event.identifier)
                 logging.info(nfc_tag)
 
-                if isinstance(nfc_tag, NFCTag):
+                previous_tag = current_tag
+                current_tag = nfc_tag.identifier
+
+                if isinstance(nfc_tag, NFCTag) and not isinstance(nfc_tag, LegacyTag):
                     logging.info("doing new")
                     nfc_tag.on_add()
                     self.base.change_pad_color(tag_event.pad_num, nfc_tag.get_pad_color())
                     # Unknown tag. Display UID.
                 
                 else:
-                    logging.info("doing old")
+                    if isinstance(nfc_tag, LegacyTag):
+                        nfc_tag = nfc_tag.definition
+
+                    logging.info("doing old: %s", nfc_tag)
                     # if current_tag == None:
                     #     previous_tag = tag_event.identifier
                     # else:
-                    previous_tag = current_tag
-                    current_tag = tag_event.identifier
                     # A tag has been matched
                     if 'playlist' in nfc_tag:
                         playlist = nfc_tag['playlist']
