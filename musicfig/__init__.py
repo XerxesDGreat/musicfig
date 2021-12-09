@@ -53,6 +53,7 @@ os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 #       logger.info('Update %s available. Run install.sh to update.' % latest_version)
 # except Exception:
 #     pass
+app_version = "heavy development"
 
 def create_app():
     app = Flask(__name__,
