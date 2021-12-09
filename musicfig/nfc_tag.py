@@ -249,12 +249,12 @@ class TagManager():
         """
         Load the NFC tag config file if it has changed.
         """
-        if (self.last_updated != os.stat(self.tags_file).st_mtime):
-            with open(self.tags_file, 'r') as stream:
+        if (self.last_updated != os.stat(self.nfc_tags_file).st_mtime):
+            with open(self.nfc_tags_file, 'r') as stream:
                 self.tags = yaml.load(stream, Loader=yaml.FullLoader)
             self._tags = {k: self.tag_factory(k, v) for (k,v) in self.tags.items()}
             self._tags = {k: v for (k, v) in self._tags.items() if v is not None}
-            self.last_updated = os.stat(self.tags_file).st_mtime
+            self.last_updated = os.stat(self.nfc_tags_file).st_mtime
             logger.info("loaded %s into new form of tags, %s into old form of", len(self._tags), len(self.tags))
 
         return self._tags
