@@ -2,6 +2,7 @@
 
 from musicfig import webhook
 from flask import Flask, render_template
+from flask_sqlalchemy import SQLAlchemy
 from logging.config import dictConfig
 import os, sys
 import logging
@@ -55,6 +56,8 @@ os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 #     pass
 app_version = "heavy development"
 
+db = SQLAlchemy()
+
 def create_app():
     app = Flask(__name__,
                 static_url_path='', 
@@ -66,10 +69,16 @@ def create_app():
 
     app.config.from_object('config')
 
+    db.init_app(app)
+
     with app.app_context(), app.test_request_context():
         from musicfig.spotify import spotify as spotify_module
-        #from musicfig.nfc_tag import tag as tag_module
+
+        db.create_all()
+
         app.register_blueprint(spotify_module)
+
+        #from musicfig.nfc_tag import tag as tag_module
         #app.register_blueprint(tag_module, url_prefix="tag")
         logger.info('Musicfig %s started.' % app_version)
         if app.config['CLIENT_ID']:

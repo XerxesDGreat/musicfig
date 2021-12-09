@@ -1,20 +1,18 @@
 #!/usr/bin/env python
 
-from musicfig import lego
-from musicfig import webhook
-from flask import Blueprint, request, render_template, \
-                  flash, g, session, redirect, url_for, \
-                  current_app
-from urllib.request import urlopen
 import io
 import logging
 import os
 import sqlite3
 import tekore as tk
 import threading
-import subprocess
-import requests
 import unidecode
+
+from . import db
+from flask import Blueprint, request, render_template, \
+                  session, redirect, current_app
+from musicfig import lego
+from urllib.request import urlopen
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +32,18 @@ cache_lock = threading.Lock()
 
 last_played = 'unknown'
 last_out = ''
+
+class Song(db.Model):
+    __tablename__ = 'songs'
+    id = db.Column(db.String(40), unique=True, nullable=False)
+    image_url = db.Column(db.Text, nullable=True)
+    artist = db.Column(db.String(40), nullable=False)
+    name = db.Column(db.String(40),nullable=False)
+    duration_ms = db.Column(db.Integer)
+
+    def __repr__(self):
+        return '<Song %s - %s>' % (self.artist, self.name)
+
 
 def init_cache():
     """Use a database to store song meta data to reduce API calls.
@@ -98,11 +108,11 @@ def resume():
         try:
             tkspotify.playback_resume()
             song = tkspotify.playback_currently_playing()
-            sp_elapsed = song.progress_ms
-            sp_id = song.item.id
-            cursor.execute("""select duration from song where id = ?;""", (sp_id,))
-            row = cursor.fetchone()
-            sp_remaining = row[0] - sp_elapsed
+            #sp_elapsed = song.progress_ms
+            #sp_id = song.item.id
+            song_obj = Song.query.filter(Song.id == song.item.id).first()
+            #cursor.execute("""select duration from song where id = ?;""", (sp_id,))
+            sp_remaining = song_obj.duration_ms - song.progress_ms
         except Exception:
             pass
     return sp_remaining
@@ -134,17 +144,16 @@ def spotcast(spotify_uri,position_ms=0):
             logger.error(e)
             return -1
         try:
-            cursor.execute("""select * from song where id = ?;""", (uri[1],))
-            row = cursor.fetchone()
+            song = Song.query.filter(Song.id == uri[1]).first() # ick at uri[1]
         except Exception as e:
             logger.error(e)
-            row = None
+            song = None
             return 60000
-        if row is None:
+        if song is None:
             return 60000
-        artist = row[2]
-        name = row[3]
-        duration_ms = row[4]
+        artist = song.artist
+        name = song.name
+        duration_ms = song.duration_ms
         logger.info('Playing %s.' % name)
         return duration_ms
     return 0
@@ -157,14 +166,14 @@ def get_user():
     global user
     return user
 
-# @spotify.route('/', methods=['GET'])
-# def main():
-#     global user
-#     user = session.get('user', None)
-#     if user == None:
-#         # Auto login
-#         return redirect('/login', 307)
-#     return render_template("index.html", user=user)
+@spotify.route('/', methods=['GET'])
+def main():
+    global user
+    user = session.get('user', None)
+    if user == None:
+        # Auto login
+        return redirect('/login', 307)
+    return render_template("index.html", user=user)
 
 @spotify.route('/login', methods=['GET'])
 def login():
@@ -223,16 +232,16 @@ def nowplaying():
         if (song is None) or (not song.is_playing):
             return render_template('nowplaying.html')
         # The cache_lock avoids the "recursive use of cursors not allowed" exception.
+        song_obj = None
         try:
             cache_lock.acquire(True)
-            cursor.execute("""select * from song where id = ?;""", (song.item.id,))
+            song_obj = Song.query.filter(Song.id == song.item.id).first()
         except Exception as e:
             logger.error("Could not query cache database: %s" % e)
             return render_template('nowplaying.html')
         finally:
             cache_lock.release()
-        row = cursor.fetchone()
-        if row is None:
+        if song_obj is None:
             track = tkspotify.track(song.item.id)
             images_url = track.album.images
             image_url = images_url[0].url
@@ -242,22 +251,22 @@ def nowplaying():
             for item in track.artists:
                 artists += unidecode.unidecode(item.name) + ', '
             artist = artists[:-2]
-            cursor.execute("""insert into song values (?,?,?,?,?);""", 
-                (song.item.id,image_url,artist,name,duration_ms))
-            connection.commit()
-        else:
-            song.item.id = row[0]
-            image_url = row[1]
-            artist = unidecode.unidecode(row[2])
-            name = unidecode.unidecode(row[3])
-            duration_ms = row[4]
+            song_obj = Song(
+                id=song.item.id,
+                image_url=image_url,
+                artist=artist,
+                name=name,
+                duration=duration_ms
+            )
+            db.session.add(song_obj)
+            db.session.commit()
         out = last_out
-        if song.item.id != last_played:
+        if song_obj.id != last_played:
           out = render_template("nowplaying.html", 
-                               spotify_id=song.item.id,
-                               image_url=image_url, 
-                               artist=artist, 
-                               name=name)
-          last_played = song.item.id
+                               spotify_id=song_obj.id,
+                               image_url=song_obj.image_url, 
+                               artist=song_obj.artist, 
+                               name=song_obj.name)
+          last_played = song_obj.id
           last_out = out
         return out
