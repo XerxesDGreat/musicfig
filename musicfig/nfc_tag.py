@@ -223,9 +223,15 @@ class NFCTagStore():
         self.db_conn.commit()
         
 
-
     def get_current_timestamp():
         return int(time.time())
+
+    
+    def get_all_tags(self):
+        query = "SELECT * FROM nfc_tags"
+        rows = self.cursor.execute(query).fetchall()
+        logger.info(rows)
+        return rows
 
 
 TAG_REGISTRY_MAP = {
@@ -275,6 +281,7 @@ class TagManager():
         """
         Load the NFC tag config file if it has changed.
         """
+        ttttttt = self.nfc_tag_store.get_all_tags()
         if (self.last_updated != os.stat(self.nfc_tags_file).st_mtime):
             with open(self.nfc_tags_file, 'r') as stream:
                 self.tags = yaml.load(stream, Loader=yaml.FullLoader)
