@@ -224,13 +224,14 @@ class NFCTagStore():
         return int(time.time())
 
 
+TAG_REGISTRY_MAP = {
+    "webhook": WebhookTag,
+    "slack": SlackTag,
+    "twinkly": TwinklyTag,
+}
+
 class TagManager():
 
-    tag_registry_map = {
-        "webhook": WebhookTag,
-        "slack": SlackTag,
-        "twinkly": TwinklyTag,
-    }
 
     def __init__(self, app_context=None, should_load_tags=True):
         self.app_context = app_context
@@ -268,7 +269,7 @@ class TagManager():
         if tag_type is None:
             return tag
         
-        tag_class = Tags.tag_registry_map.get(tag_type)
+        tag_class = TAG_REGISTRY_MAP.get(tag_type)
         if tag_class is None:
             return tag
 
