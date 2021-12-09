@@ -203,6 +203,7 @@ class NFCTagStore():
         Everything that is remaining will be encoded as json and stored in 
         the `attr` field
         """
+        before = self.cursor.execute("SELECT COUNT(*) FROM nfc_tags")
         def convert_one(k, v, curtime):
             id = k
             # these double-pops actually pull both of the keys from the dictionary;
@@ -218,6 +219,10 @@ class NFCTagStore():
         
         query = "INSERT OR REPLACE INTO nfc_tags VALUES (?, ?, ?, ?, ?, ?)"
         self.cursor.executemany(query, replacement_list)
+        after = self.cursor.execute("SELECT COUNT(*) FROM nfc_tags")
+        logger.info("added %s tags, creating %s new rows", len(nfc_tag_dict.items()), after - before)
+        # self.conn.commit()
+        
 
 
     def get_current_timestamp():
@@ -257,13 +262,15 @@ class TagManager():
         the database ***
         """
         last_db_update = self.nfc_tag_store.get_last_updated_time()
-        last_file_update = os.stat(self.nfc_tags_file).st_mtime
+        last_file_update = int(os.stat(self.nfc_tags_file).st_mtime)
         logger.info("last db updated: %s, last file updated: %s", last_db_update, last_file_update)
-        return False
+        return last_file_update > last_db_update
     
 
     def import_file(self):
-        pass
+        with open(self.nfc_tags_file, 'r') as f:
+            nfc_tag_defs = yaml.load(f, Loader=yaml.FullLoader)
+        self.nfc_tag_store.populate_from_dict(nfc_tag_defs)
 
     def load_tags(self):
         """
