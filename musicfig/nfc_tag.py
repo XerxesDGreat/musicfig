@@ -8,8 +8,13 @@ import time
 import xled
 import yaml
 
+from .models import db, NFCTagModel
+from flask import Blueprint, request, render_template, \
+                  flash, g, session, redirect, url_for, \
+                  current_app
 from musicfig import colors, webhook
 from pathlib import Path
+from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
 
@@ -164,38 +169,15 @@ class TwinklyTag(NFCTag):
 
 class NFCTagStore():
 
-
-    def __init__(self, app_context):
-        self.db_uri = app_context.config.get('SQLITE_URI')
-        self.db_conn = sqlite3.connect(self.db_uri, check_same_thread=False)
-        self.db_conn.row_factory = sqlite3.Row
-        self.cursor = self.db_conn.cursor()
-        self.create_table()
-
-
-    def create_table(self):
-        query = "CREATE TABLE IF NOT EXISTS nfc_tags (\
-                id text UNIQUE, \
-                name text, \
-                description text, \
-                type text, \
-                attr text, \
-                last_updated integer \
-            )"
-        self.cursor.execute(query)
-        self.db_conn.commit()
-    
+    def __init__(self):
+        pass
 
     def get_last_updated_time(self):
-        query = "SELECT last_updated\
-                    FROM nfc_tags\
-                    ORDER BY last_updated DESC\
-                    LIMIT 1"
-        last_updated_db = self.cursor.execute(query).fetchone()
+        latest_nfc_tag = NFCTagModel.query.order_by(NFCTagModel.last_updated.desc()).first()
+        return 0 if latest_nfc_tag is None else latest_nfc_tag.last_updated
 
-        # the response from the db comes back as a tuple, so let's get the first item there
-        return 0 if last_updated_db is None else last_updated_db[0]
-    
+    def get_number_of_nfc_tags(self):
+        return db.session.query(func.count(NFCTagModel.id))
 
     def populate_from_dict(self, nfc_tag_dict):
         """
@@ -209,7 +191,7 @@ class NFCTagStore():
         Everything that is remaining will be encoded as json and stored in 
         the `attr` field
         """
-        before = self.cursor.execute("SELECT COUNT(*) FROM nfc_tags").fetchone()
+        before = self.get_number_of_nfc_tags()
         def convert_one(k, v, curtime):
             id = k
             # these double-pops actually pull both of the keys from the dictionary;
@@ -218,33 +200,26 @@ class NFCTagStore():
             desc = v.pop("description", v.pop("desc", None))
             nfc_tag_type = v.pop("type", None)
             attr = json.dumps(v)
-            return (id, name, desc, nfc_tag_type, attr, curtime)
+            return NFCTagModel(id=id, name=name, description=desc,
+                type=nfc_tag_type, attr=attr, last_updated=curtime)
 
-        cur_time = NFCTagStore.get_current_timestamp()
-        replacement_list = [convert_one(k, v, cur_time) for (k, v) in nfc_tag_dict.items()]
-        
-        query = "INSERT OR REPLACE INTO nfc_tags VALUES (?, ?, ?, ?, ?, ?)"
-        self.cursor.executemany(query, replacement_list)
-        after = self.cursor.execute("SELECT COUNT(*) FROM nfc_tags").fetchone()
+        cur_time = self.get_current_timestamp()
+        for k, v in nfc_tag_dict.items():
+            nfc_tag_model = convert_one(k, v, cur_time)
+            db.session.add(nfc_tag_model)
+        db.session.commit()
+
+        after = self.get_number_of_nfc_tags()
         logger.info("added %s tags; before: %s, after: %s", len(nfc_tag_dict.items()), before, after)
-        self.db_conn.commit()
-        
 
-    def get_current_timestamp():
+    def get_current_timestamp(self):
         return int(time.time())
-
     
     def get_all_nfc_tags(self):
-        query = "SELECT * FROM nfc_tags"
-        rows = self.cursor.execute(query).fetchall()
-        logger.info(rows)
-        return rows
-
+        return NFCTagModel.query.all()
     
     def get_nfc_tag_by_id(self, id):
-        query = "SELECT * FROM nfc_tags WHERE id = ?"
-        row = self.cursor.execute(query, (id,)).fetchone()
-        return row
+        return NFCTagModel.query.filter(NFCTagModel.id == id).first()
 
 
 TAG_REGISTRY_MAP = {
@@ -335,13 +310,14 @@ class TagManager():
         old-style or new-style tags, depending on which store it comes from.
         New style will override old style
         """
-        row = self.nfc_tag_store.get_nfc_tag_by_id(id)
+        nfc_tag_model = self.nfc_tag_store.get_nfc_tag_by_id(id)
         
-        nfc_tag = UnknownTag(id) if row is None else self.nfc_tag_factory(
-            id,
-            json.loads(row["attr"]),
-            nfc_tag_type=row["type"],
-            name=row["name"],
-            description=row["description"])
-        logger.info("built tag of type %s from info %s", type(nfc_tag), row)
+        if nfc_tag_model is None:
+            nfc_tag = UnknownTag(id)
+        else:
+            nfc_tag = self.nfc_tag_factory(id, nfc_tag_model.get_attr_object(),
+                nfc_tag_type=nfc_tag_model.type, name=nfc_tag_model.name,
+                description=nfc_tag_model.description
+            )
+        logger.info("built tag of type %s from info %s", type(nfc_tag), nfc_tag_model)
         return nfc_tag
