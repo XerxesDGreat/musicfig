@@ -339,7 +339,7 @@ class TagManager():
         
         nfc_tag = UnknownTag(id) if row is None else self.nfc_tag_factory(
             id,
-            row["attr"],
+            json.loads(row["attr"]),
             nfc_tag_type=row["type"],
             name=row["name"],
             description=row["description"])
