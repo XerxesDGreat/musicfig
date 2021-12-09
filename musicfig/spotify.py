@@ -256,7 +256,7 @@ def nowplaying():
                 image_url=image_url,
                 artist=artist,
                 name=name,
-                duration=duration_ms
+                duration_ms=duration_ms
             )
             db.session.add(song_obj)
             db.session.commit()
