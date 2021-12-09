@@ -306,10 +306,10 @@ class Base():
                 
                 else:
                     logging.info("doing old")
-                    if current_tag == None:
-                        previous_tag = tag_event.identifier
-                    else:
-                        previous_tag = current_tag
+                    # if current_tag == None:
+                    #     previous_tag = tag_event.identifier
+                    # else:
+                    previous_tag = current_tag
                     current_tag = tag_event.identifier
                     # A tag has been matched
                     if 'playlist' in nfc_tag:
