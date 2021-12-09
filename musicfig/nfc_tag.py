@@ -236,7 +236,7 @@ class TagManager():
         self.last_updated = -1
         self.tags = {}
         self._tags = {}
-        self.nfc_tag_store = NFCTagStore(app_context)
+        self.nfc_tag_store = NFCTagStore()
 
         if self.should_import_file():
             self.import_file()
