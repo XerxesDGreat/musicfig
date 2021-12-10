@@ -56,9 +56,10 @@ os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 app_version = "heavy development"
 
 db = SQLAlchemy()
-
-from . import events
 socketio = SocketIO()
+
+from . import models
+from . import events
 
 def init_app():
     app = Flask(__name__,
