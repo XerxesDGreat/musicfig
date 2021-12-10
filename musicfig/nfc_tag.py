@@ -50,7 +50,7 @@ class UnknownTag(NFCTag):
         # app, but this is fine for now. Maybe
         logger.info('Discovered new tag: %s' % self.identifier)
         event_emitter = events.TagNamespace()
-        event_emitter.send_new_tag_event(self.identifier)
+        event_emitter.publish_new_tag_event(self.identifier)
 
     def get_pad_color(self):
         return colors.RED

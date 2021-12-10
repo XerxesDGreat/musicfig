@@ -1,5 +1,6 @@
 import logging
 
+from . import socketio
 from flask_socketio import Namespace, emit
 
 logger = logging.getLogger(__name__)
@@ -16,5 +17,5 @@ class TagNamespace(Namespace):
     def on_comm(self, data):
         logger.info("socketio comm: %s", data)
 
-    def send_new_tag_event(self, tag_id):
-        emit('new_tag', {'id': id})
+    def publish_new_tag_event(self, id):
+        socketio.emit('new_tag', {"id": id})
