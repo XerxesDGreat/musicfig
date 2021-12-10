@@ -19,7 +19,6 @@ spotify_client = SpotifyClient(client_config=spotify_client_config)
 @web.route("/", methods=["GET"])
 def main():
     user = session.get("user", None)
-    user = None
     if user == None:
         # Auto login
         return redirect("/login", 307)
