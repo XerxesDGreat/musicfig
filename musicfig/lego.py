@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from collections import namedtuple
-from flask_socketio import emit
+from . import socketio
 from musicfig import webhook
 from mutagen.mp3 import MP3
 from musicfig.nfc_tag import LegacyTag, TagManager, NFCTag
@@ -261,7 +261,7 @@ class Base():
             i = i + 1
             if i == 1000:
                 logging.info("loop")
-                emit("loop", {"data": "none"})
+                socketio.emit("loop", {"data": "none"})
                 i = 0
             tag_event = self.base.get_tag_event()
             if not tag_event:
