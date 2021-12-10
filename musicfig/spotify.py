@@ -28,7 +28,7 @@ class SpotifyClient:
         self._init_client()
 
     def _init_client(self):
-        self.credentials = tk.Credentials(self.config["client_id"], self.config["client_secret"], self.config["redirect_uri"])
+        self.credentials = tk.Credentials(self.config.client_id, self.config.client_secret, self.config.redirect_uri)
         self.client = tk.Spotify()
     
     def get_client_id(self):
