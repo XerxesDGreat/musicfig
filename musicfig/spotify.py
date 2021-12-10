@@ -32,7 +32,7 @@ class SpotifyClient:
         self.client = tk.Spotify()
     
     def get_client_id(self):
-        return self.credentials["client_id"]
+        return self.credentials.client_id
 
     def get_authorization_url(self):
         return self.credentials.user_authorisation_url(scope=tk.scope.every)
