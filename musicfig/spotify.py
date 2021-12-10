@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from collections import namedtuple
 import logging
 import os
 import tekore as tk
@@ -15,6 +16,33 @@ from urllib.request import urlopen
 logger = logging.getLogger(__name__)
 
 spotify = Blueprint('spotify', __name__)
+
+SpotifyClientConfig = namedtuple("SpotifyClientConfig", ["client_id", "client_secret", "redirect_uri"])
+
+class SpotifyClient:
+    def __init__(self, client_config=None):
+        self.user = None
+        self.config = client_config
+        self.credentials = None
+        self.client = None
+        self._init_client()
+
+    def _init_client(self):
+        self.credentials = tk.Credentials(self.config["client_id"], self.config["client_secret"], self.config["redirect_uri"])
+        self.client = tk.Spotify()
+    
+    def get_client_id(self):
+        return self.credentials["client_id"]
+
+    def get_authorization_url(self):
+        return self.credentials.user_authorisation_url(scope=tk.scope.every)
+
+    def get_user(self):
+        return self.user
+    
+    def set_user(self, user):
+        self.user = user
+        
 
 conf = (current_app.config['CLIENT_ID'], 
         current_app.config['CLIENT_SECRET'], 
@@ -140,15 +168,6 @@ def set_user(new_user):
 def get_user():
     global user
     return user
-
-@spotify.route('/login', methods=['GET'])
-def login():
-    if conf[0] == '':
-        session['user'] = 'local'
-        return redirect('/', 307)
-    else:
-        auth_url = cred.user_authorisation_url(scope=tk.scope.every)
-        return redirect(auth_url, 307)
 
 @spotify.route('/callback', methods=['GET'])
 def login_callback():
