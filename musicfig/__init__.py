@@ -55,7 +55,6 @@ os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 #     pass
 app_version = "heavy development"
 
-from . import models
 db = SQLAlchemy()
 
 from . import events
