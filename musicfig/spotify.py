@@ -45,7 +45,6 @@ def connectLego():
     legoThread.daemon = True
     legoThread.start()
 
-#init_cache()
 connectLego()
 
 def activated():
@@ -141,15 +140,6 @@ def set_user(new_user):
 def get_user():
     global user
     return user
-
-@spotify.route('/', methods=['GET'])
-def main():
-    global user
-    user = session.get('user', None)
-    if user == None:
-        # Auto login
-        return redirect('/login', 307)
-    return render_template("index.html", user=user)
 
 @spotify.route('/login', methods=['GET'])
 def login():
