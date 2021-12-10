@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import time
+from sqlalchemy.sql.schema import _NotAColumnExpr
 import xled
 import yaml
 
@@ -167,18 +168,17 @@ class TwinklyTag(NFCTag):
 
 
 class NFCTagStore():
-
-    def __init__(self):
-        pass
-
-    def get_last_updated_time(self):
+    @staticmethod
+    def get_last_updated_time():
         latest_nfc_tag = NFCTagModel.query.order_by(NFCTagModel.last_updated.desc()).first()
         return 0 if latest_nfc_tag is None else latest_nfc_tag.last_updated
 
-    def get_number_of_nfc_tags(self):
+    @staticmethod
+    def get_number_of_nfc_tags():
         return db.session.query(func.count(NFCTagModel.id))
 
-    def populate_from_dict(self, nfc_tag_dict):
+    @staticmethod
+    def populate_from_dict(nfc_tag_dict):
         """
         Expects nfc tag dict with the keys as unique identifiers and the
         values as the configuration information. This will be parsed and
@@ -190,7 +190,7 @@ class NFCTagStore():
         Everything that is remaining will be encoded as json and stored in 
         the `attr` field
         """
-        before = self.get_number_of_nfc_tags()
+        before = NFCTagStore.get_number_of_nfc_tags()
         def convert_one(k, v, curtime):
             id = k
             # these double-pops actually pull both of the keys from the dictionary;
@@ -202,22 +202,25 @@ class NFCTagStore():
             return NFCTagModel(id=id, name=name, description=desc,
                 type=nfc_tag_type, attr=attr, last_updated=curtime)
 
-        cur_time = self.get_current_timestamp()
+        cur_time = NFCTagStore.get_current_timestamp()
         for k, v in nfc_tag_dict.items():
             nfc_tag_model = convert_one(k, v, cur_time)
             db.session.add(nfc_tag_model)
         db.session.commit()
 
-        after = self.get_number_of_nfc_tags()
+        after = NFCTagStore.get_number_of_nfc_tags()
         logger.info("added %s tags; before: %s, after: %s", len(nfc_tag_dict.items()), before, after)
 
-    def get_current_timestamp(self):
+    @staticmethod
+    def get_current_timestamp():
         return int(time.time())
-    
-    def get_all_nfc_tags(self):
+
+    @staticmethod    
+    def get_all_nfc_tags():
         return NFCTagModel.query.all()
-    
-    def get_nfc_tag_by_id(self, id):
+
+    @staticmethod    
+    def get_nfc_tag_by_id(id):
         return NFCTagModel.query.filter(NFCTagModel.id == id).first()
 
 
@@ -229,19 +232,15 @@ TAG_REGISTRY_MAP = {
 
 class TagManager():
     # todo; merge this class with NFCTagStore
-    def __init__(self, app_context=None, should_load_tags=True):
+    def __init__(self, app_context=_NotAColumnExpr):
         self.app_context = app_context
         self.nfc_tags_file = app_context.config.get("NFC_TAG_FILE")
         self.last_updated = -1
         self.tags = {}
         self._tags = {}
-        self.nfc_tag_store = NFCTagStore()
 
         if self.should_import_file():
             self.import_file()
-
-        if should_load_tags:
-            self.load_tags()
 
 
     def should_import_file(self):
@@ -253,7 +252,7 @@ class TagManager():
         *** note, this is destructive in nature; yaml will completely overwrite
         the database ***
         """
-        last_db_update = self.nfc_tag_store.get_last_updated_time()
+        last_db_update = NFCTagStore.get_last_updated_time()
         last_file_update = int(os.stat(self.nfc_tags_file).st_mtime)
         logger.info("last db updated: %s, last file updated: %s", last_db_update, last_file_update)
         return last_file_update > last_db_update
@@ -262,25 +261,7 @@ class TagManager():
     def import_file(self):
         with open(self.nfc_tags_file, 'r') as f:
             nfc_tag_defs = yaml.load(f, Loader=yaml.FullLoader)
-        self.nfc_tag_store.populate_from_dict(nfc_tag_defs)
-
-
-    # we'll keep this, but nothing is using it right now; instead of a local cache
-    # for a file which gets read into memory all the damn time, we can 100% just query
-    # the database
-    def load_tags(self):
-        """
-        Load the NFC tag config file if it has changed.
-        """
-        if (self.last_updated != os.stat(self.nfc_tags_file).st_mtime):
-            with open(self.nfc_tags_file, 'r') as stream:
-                self.tags = yaml.load(stream, Loader=yaml.FullLoader)
-            self._tags = {k: self.nfc_tag_factory(k, v) for (k,v) in self.tags.items()}
-            self._tags = {k: v for (k, v) in self._tags.items() if v is not None}
-            self.last_updated = os.stat(self.nfc_tags_file).st_mtime
-            logger.info("loaded %s into new form of tags, %s into old form of", len(self._tags), len(self.tags))
-
-        return self._tags
+        NFCTagStore.populate_from_dict(nfc_tag_defs)
 
 
     def nfc_tag_factory(self, id, data, nfc_tag_type=None, name=None, description=None):
@@ -309,7 +290,7 @@ class TagManager():
         old-style or new-style tags, depending on which store it comes from.
         New style will override old style
         """
-        nfc_tag_model = self.nfc_tag_store.get_nfc_tag_by_id(id)
+        nfc_tag_model = NFCTagStore.get_nfc_tag_by_id(id)
         
         if nfc_tag_model is None:
             nfc_tag = UnknownTag(id)
