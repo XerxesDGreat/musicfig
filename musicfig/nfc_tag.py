@@ -7,6 +7,7 @@ import time
 import xled
 import yaml
 
+from . import events
 from .models import db, NFCTagModel
 from flask import Blueprint, request, render_template, \
                   flash, g, session, redirect, url_for, \
@@ -48,6 +49,8 @@ class UnknownTag(NFCTag):
         # should _probably_ use a logger which is associated with the
         # app, but this is fine for now. Maybe
         logger.info('Discovered new tag: %s' % self.identifier)
+        event_emitter = events.TagNamespace()
+        event_emitter.send_new_tag_event(self.identifier)
 
     def get_pad_color(self):
         return colors.RED

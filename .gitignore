@@ -1,5 +1,5 @@
 __pycache__/
-app/.cache/
+musicfig/.cache/
 config.py
 musicfig.log
 tags.yml
@@ -9,3 +9,4 @@ env/
 app/test.py
 venv/*
 *.pyc
+assets/twinkly_patterns/*

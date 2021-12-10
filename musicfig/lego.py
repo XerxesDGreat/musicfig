@@ -259,9 +259,8 @@ class Base():
         i = 0
         while True:
             i = i + 1
-            if i == 1000:
+            if i == 10000:
                 logging.info("loop")
-                socketio.emit("loop", {"data": "none"})
                 i = 0
             tag_event = self.base.get_tag_event()
             if not tag_event:
