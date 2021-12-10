@@ -4,7 +4,6 @@ import json
 import logging
 import os
 import time
-from sqlalchemy.sql.schema import _NotAColumnExpr
 import xled
 import yaml
 
@@ -232,7 +231,7 @@ TAG_REGISTRY_MAP = {
 
 class TagManager():
     # todo; merge this class with NFCTagStore
-    def __init__(self, app_context=_NotAColumnExpr):
+    def __init__(self, app_context=None):
         self.app_context = app_context
         self.nfc_tags_file = app_context.config.get("NFC_TAG_FILE")
         self.last_updated = -1
