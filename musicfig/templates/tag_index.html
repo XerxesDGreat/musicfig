@@ -1,0 +1,32 @@
+<head>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}">
+    <meta charset="utf-8" />
+</head>
+<body>
+    <h1>Registered Tags</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Type</th>
+                <th>Attributes</th>
+                <th>Last Updated</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tag in tags %}
+            <tr>
+                <td>{{ tag.id }}</td>
+                <td>{{ tag.name }}</td>
+                <td>{{ tag.description }}</td>
+                <td>{{ tag.type }}</td>
+                <td>{{ tag.attr }}</td>
+                <td>{{ tag.last_updated }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+    

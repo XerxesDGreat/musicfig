@@ -72,11 +72,13 @@ def init_app():
         return render_template('404.html'), 404
 
     with app.app_context(), app.test_request_context():
-        db.create_all()
-
         from musicfig.spotify import spotify as spotify_module
-
         app.register_blueprint(spotify_module)
+
+        from musicfig.nfc_tag import nfc_tag as nfc_tag_module
+        app.register_blueprint(nfc_tag_module)
+
+        db.create_all()
 
         #from musicfig.nfc_tag import tag as tag_module
         #app.register_blueprint(tag_module, url_prefix="tag")

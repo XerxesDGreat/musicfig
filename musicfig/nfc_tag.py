@@ -3,7 +3,6 @@
 import json
 import logging
 import os
-import sqlite3
 import time
 import xled
 import yaml
@@ -229,7 +228,7 @@ TAG_REGISTRY_MAP = {
 }
 
 class TagManager():
-
+    # todo; merge this class with NFCTagStore
     def __init__(self, app_context=None, should_load_tags=True):
         self.app_context = app_context
         self.nfc_tags_file = app_context.config.get("NFC_TAG_FILE")
@@ -321,3 +320,9 @@ class TagManager():
             )
         logger.info("built tag of type %s from info %s", type(nfc_tag), nfc_tag_model)
         return nfc_tag
+
+nfc_tag = Blueprint('nfc_tag', __name__, url_prefix="tags")
+
+@nfc_tag.route('/', methods=['GET'])
+def index():
+    return render_template("tag_index.html", nfc_tags=NFCTagStore.get_all_nfc_tags())
