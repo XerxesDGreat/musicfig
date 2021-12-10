@@ -1,15 +1,13 @@
 #!/usr/bin/env python
+import os
+import logging
 
-from musicfig import webhook
 from flask import Flask, render_template
+from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 from logging.config import dictConfig
-import os, sys
-import logging
-import requests
-import threading
 
-logging.config.dictConfig({
+dictConfig({
     'version': 1,
     'formatters': {'default': {
         'format': '[%(asctime)s] %(levelname)s: %(message)s',
@@ -57,7 +55,11 @@ os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 #     pass
 app_version = "heavy development"
 
+from . import models
 db = SQLAlchemy()
+
+from . import events
+socketio = SocketIO()
 
 def init_app():
     app = Flask(__name__,
@@ -66,6 +68,7 @@ def init_app():
     app.config.from_object('config')
 
     db.init_app(app)
+    socketio.init_app(app)
 
     @app.errorhandler(404)
     def not_found(error):
