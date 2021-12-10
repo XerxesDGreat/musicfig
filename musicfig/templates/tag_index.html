@@ -18,12 +18,12 @@
         <tbody>
             {% for nfc_tag in nfc_tags %}
             <tr>
-                <td>{{ tag.id }}</td>
-                <td>{{ tag.name }}</td>
-                <td>{{ tag.description }}</td>
-                <td>{{ tag.type }}</td>
-                <td>{{ tag.attr }}</td>
-                <td>{{ tag.last_updated }}</td>
+                <td>{{ nfc_tag.id }}</td>
+                <td>{{ nfc_tag.name }}</td>
+                <td>{{ nfc_tag.description }}</td>
+                <td>{{ nfc_tag.type }}</td>
+                <td>{{ nfc_tag.attr }}</td>
+                <td>{{ nfc_tag.last_updated }}</td>
             </tr>
             {% endfor %}
         </tbody>
