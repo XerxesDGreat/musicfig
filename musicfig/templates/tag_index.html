@@ -8,6 +8,10 @@
             socket.emit('comm', {data: 'I\'m connected!'});
         });
 
+        socket.on('loop', function(event, ...args) {
+            console.log('got loop event');
+        })
+
         socket.onAny(function(event, ...args) {
             console.log(`got ${event}`);
         });
