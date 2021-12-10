@@ -1,12 +1,15 @@
 import logging
 
-from flask_socketio import SocketIO
-from . import socketio
-from flask_socketio import send
+from flask_socketio import Namespace, emit
 
 logger = logging.getLogger(__name__)
 
-@socketio.on('message')
-def on_message(message):
-    logger.info("fasdfasdfasdfasdfasdfasdf")
-    send(message)
+class TagNamespace(Namespace):
+    def on_connect(self):
+        logger.info("socketio connected")
+    
+    def on_disconnect(self):
+        logger.info("socketio disconnected")
+    
+    def on_comm(self, data):
+        logger.info("socketio comm: %s", data)
