@@ -5,7 +5,7 @@
     <script type="text/javascript" charset="utf-8">
         var socket = io();
         socket.on('connect', function() {
-            socket.emit('my event', {data: 'I\'m connected!'});
+            socket.emit('comm', {data: 'I\'m connected!'});
         });
 
         socket.onAny(function(event, ...args) {

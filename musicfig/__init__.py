@@ -83,7 +83,7 @@ def init_app():
 
         db.create_all()
 
-        socketio.on_namespace(events.TagNamespace("/tag"))
+        socketio.on_namespace(events.TagNamespace())
 
         #from musicfig.nfc_tag import tag as tag_module
         #app.register_blueprint(tag_module, url_prefix="tag")
