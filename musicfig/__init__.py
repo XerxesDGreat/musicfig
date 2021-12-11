@@ -2,10 +2,12 @@
 import os
 import logging
 
+from . import lego
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 from logging.config import dictConfig
+from threading import Thread
 
 dictConfig({
     'version': 1,
@@ -57,6 +59,7 @@ app_version = "heavy development"
 
 db = SQLAlchemy()
 socketio = SocketIO()
+lego_thread = Thread()
 
 from . import models
 from . import events
@@ -78,13 +81,18 @@ def init_app():
         from .web import web as web_blueprint
         app.register_blueprint(web_blueprint)
 
-        from .spotify import spotify as spotify_blueprint
-        app.register_blueprint(spotify_blueprint)
-
         from .nfc_tag import nfc_tag as nfc_tag_blueprint
         app.register_blueprint(nfc_tag_blueprint)
 
         db.create_all()
+
+        def connect_lego():
+            global lego_thread
+            lego_thread = Thread(target=lego.Base)
+            lego_thread.daemon = True
+            lego_thread.start()
+
+        connect_lego()
 
         socketio.on_namespace(events.TagNamespace())
 

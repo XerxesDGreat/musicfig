@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
-from collections import namedtuple
 from . import socketio
+from .spotify import SpotifyClientConfig, SpotifyClient
+from collections import namedtuple
+from flask import current_app
 from musicfig import webhook
 from mutagen.mp3 import MP3
 from musicfig.nfc_tag import LegacyTag, TagManager, NFCTag
@@ -9,8 +11,8 @@ from musicfig.nfc_tag import LegacyTag, TagManager, NFCTag
 import binascii
 import glob
 import logging
-import musicfig.mp3player as mp3player
-import musicfig.spotify as spotify
+import mp3player
+import spotify
 import os
 import random
 import threading
@@ -117,7 +119,7 @@ class Dimensions():
 
 
 class Base():
-    def __init__(self, app_context):
+    def __init__(self):
         self.OFF   = [0,0,0]
         self.RED   = [100,0,0]
         self.GREEN = [0,100,0]
@@ -129,8 +131,15 @@ class Base():
         self.OLIVE = [50,50,0]
         self.COLOURS = ['self.RED', 'self.GREEN', 'self.BLUE', 'self.PINK', 
                         'self.ORANGE', 'self.PURPLE', 'self.LBLUE', 'self.OLIVE']
-        self.app_context = app_context
+                        
+        self._init_spotify()
         self.base = self.startLego()
+
+    def _init_spotify(self):
+        spotify_client_config = SpotifyClientConfig(current_app.config.get("CLIENT_ID"),
+            current_app.config.get("CLIENT_SECRET"), current_app.config.get("REDIRECT_URI"))
+
+        self.spotify_client = SpotifyClient(client_config=spotify_client_config)
 
     def randomLightshow(self,duration = 60):
         logger.info("Lightshow started for %s seconds." % duration)
@@ -205,7 +214,7 @@ class Base():
     def playMp3(self, filename, mp3_dir):
         global t
         global mp3state
-        spotify.pause()
+        self.spotify_client.pause()
         if previous_tag == current_tag and 'PAUSED' in ("%s" % mp3state):
             # Resume
             logger.info("Resuming mp3 track.")
@@ -222,7 +231,7 @@ class Base():
     def playPlaylist(self, playlist_filename, mp3_dir, shuffle=False):
         global mp3state
         list_mp3_to_play = []
-        spotify.pause()
+        self.spotify_client.pause()
 
         mp3list = mp3_dir +'/'+ playlist_filename + '/*.mp3'
         ##logger.debug(mp3list)
@@ -245,11 +254,11 @@ class Base():
         current_tag = None
         previous_tag = None
         mp3state = None
-        nfc = TagManager(self.app_context)
+        nfc = TagManager(current_app)
         self.base = Dimensions()
         logger.info("Lego Dimensions base activated.")
         self.initMp3()
-        switch_lights = self.app_context.config["RUN_LIGHT_SHOW_DEFAULT"]
+        switch_lights = current_app.config["RUN_LIGHT_SHOW_DEFAULT"]
         logger.info('Lightshow is %s' % switch_lights) #("disabled", "enabled")[switch_lights])
         if switch_lights:
             self.base.change_pad_color(0,self.GREEN)
@@ -279,13 +288,13 @@ class Base():
                     except Exception:
                         pass
                     self.pauseMp3()
-                    if spotify.activated():
-                        spotify.pause()
+                    if self.spotify_client.is_activated():
+                        self.spotify_client.pause()
             else:
                 if switch_lights:
                     self.base.change_pad_color(pad = tag_event.pad_num, colour = self.BLUE)
 
-                mp3_dir = self.app_context.config["MP3_DIR"]
+                mp3_dir = current_app.config["MP3_DIR"]
                 ##logger.debug(mp3_dir)
 
                 # Stop any current songs and light shows
@@ -331,21 +340,21 @@ class Base():
                         command = nfc_tag['command']
                         logger.info('Running command %s' % command)
                         os.system(command)
-                    if 'spotify' in nfc_tag and spotify.activated():
-                        if current_tag == previous_tag:
-                            self.startLightshow(spotify.resume())
-                            continue
+                    if 'spotify' in nfc_tag and self.spotify_client.is_activated():
+                        # if current_tag == previous_tag:
+                        #     self.startLightshow(spotify.resume())
+                        #     continue
                         try:
                             position_ms = int(nfc_tag['position_ms'])
                         except Exception:
                             position_ms = 0
                         self.stopMp3()
-                        duration_ms = spotify.spotcast(nfc_tag['spotify'],
+                        duration_ms = self.spotify_client.spotcast(nfc_tag['spotify'],
                                                         position_ms)
-                        if duration_ms > 0:
-                            self.startLightshow(duration_ms)
-                        else:
-                            self.base.flash_pad_color(pad = tag_event.pad_num, on_length = 10, off_length = 10,
-                                                pulse_count = 6, colour = self.RED)
-                    if 'spotify' in nfc_tag and not spotify.activated():
+                        # if duration_ms > 0:
+                        #     self.startLightshow(duration_ms)
+                        # else:
+                        #     self.base.flash_pad_color(pad = tag_event.pad_num, on_length = 10, off_length = 10,
+                        #                         pulse_count = 6, colour = self.RED)
+                    if 'spotify' in nfc_tag and not self.spotify_client.is_activated():
                         current_tag = previous_tag
