@@ -82,7 +82,7 @@ class SpotifyClient:
     def get_currently_playing(self):
         currently_playing = self.get_current_users_current_playing()
         if currently_playing is None:
-            return None
+            return None, None
 
         return self._get_song_from_track(currently_playing.item), currently_playing
     
