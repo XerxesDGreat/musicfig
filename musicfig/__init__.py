@@ -11,7 +11,7 @@ from threading import Thread
 dictConfig({
     'version': 1,
     'formatters': {'default': {
-        'format': '[%(asctime)s] %(levelname)s: %(message)s',
+        'format': '[%(asctime)s] (%(filename)s:%(lineno)s) %(levelname)s: %(message)s',
     }},
     'handlers': {
         'console': {
