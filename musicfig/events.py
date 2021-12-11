@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 nfc_tag_manager = NFCTagManager.get_instance(current_app)
 
-class TagNamespace(Namespace):
+class NFCTagHandler(Namespace):
     def on_connect(self):
         logger.info("socketio connected")
         emit('connect_happy', {"foo": "bar"})
@@ -20,9 +20,6 @@ class TagNamespace(Namespace):
     
     def on_comm(self, data):
         logger.info("socketio comm: %s", data)
-
-    def publish_new_tag_event(self, id):
-        socketio.emit('new_tag', {"id": id})
 
     def on_json(self, data):
         logger.info("incoming json information: %s", data)
