@@ -64,8 +64,8 @@ class SpotifyClient:
             self.user_token_map[self.current_user_id] = token
         return token
     
-    def set_current_user(self, user):
-        self.current_user = user
+    def set_current_user_id(self, user):
+        self.current_user_id = user
     
     def get_user_token_for_code(self, code):
         return self.credentials.request_user_token(code)
@@ -190,19 +190,3 @@ class SpotifyClient:
             return ONE_MINUTE_IN_MS
 
         return song.duration_ms
-        
-# class FlaskThread(threading.Thread): 
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.app = current_app._get_current_object()
-
-#     def run(self):
-#         with self.app.app_context():
-#             super().run()
-
-# def connectLego():
-#     legoThread = FlaskThread(target=lego.Base, args=(), kwargs={"app_context": current_app._get_current_object()})
-#     legoThread.daemon = True
-#     legoThread.start()
-
-# connectLego()

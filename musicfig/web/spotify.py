@@ -26,7 +26,7 @@ def main():
         # Auto login
         return redirect("/login", 307)
     logger.info(user_id)
-    spotify_client.set_current_user(user_id)
+    spotify_client.set_current_user_id(user_id)
     return render_template("index.html", user=user_id)
 
 
