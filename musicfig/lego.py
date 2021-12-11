@@ -345,7 +345,7 @@ class Base():
                         if self.spotify_client.is_activated():
                             logger.info("activated")
                             if current_tag == previous_tag:
-                                self.startLightshow(spotify.resume())
+                                self.startLightshow(self.spotify_client.resume())
                                 continue
                             try:
                                 position_ms = int(nfc_tag['position_ms'])

@@ -70,7 +70,7 @@ def nowplaying():
     if song is None:
         return render_template(default_template, status="nothing currently playing")
     
-    render_template(default_template,
+    return render_template(default_template,
         spotify_id=song.id,
         image_url=song.image_url,
         artist=song.artist,
