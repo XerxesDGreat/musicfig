@@ -359,8 +359,8 @@ class Base():
                             # if duration_ms > 0:
                             #     self.startLightshow(duration_ms)
                             #else:
-                            self.base.flash_pad_color(pad=tag_event.pad_num, on_length=10,
-                                off_length=10, pulse_count=2, colour=self.RED)
+                            # self.base.flash_pad_color(pad=tag_event.pad_num, on_length=10,
+                            #     off_length=10, pulse_count=2, colour=self.RED)
                         else: 
                             logger.info("not activated")
                             current_tag = previous_tag

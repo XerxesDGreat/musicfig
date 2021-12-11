@@ -130,15 +130,21 @@ class TwinklyTag(NFCTag):
             logger.warning("Need config values to initialize Twinkly")
 
         return TwinklyTag.control_interface
+
+    def _get_pattern_file(self):
+        pattern_file = os.path.join(self.pattern_dir, self.pattern)
+        if not os.path.isfile(pattern_file):
+            logger.warning("Requested pattern %s does not exist at %s", self.pattern, pattern_file)
+            return None
+        return pattern_file
     
     def on_add(self):
         """
         pattern is set tree mode to off, send movie, update effects settings, and set tree mode to on
         """
-        logger.info("Twinkly - requested pattern %s", self.pattern)
-        pattern_file = os.path.join(self.pattern_dir, self.pattern)
-        if not os.path.isfile(pattern_file):
-            logger.warning("Requested pattern %s does not exist at %s", self.pattern, pattern_file)
+        logger.debug("Twinkly - requested pattern %s", self.pattern)
+        pattern_file = self._get_pattern_file()
+        if pattern_file is None:
             return
 
         ctrl = self._get_control_interface()
@@ -149,10 +155,8 @@ class TwinklyTag(NFCTag):
 
         # do the tree
         r = ctrl.set_mode("off")
-        logger.info("Twinkly - %s", r.data)
         with open(pattern_file, 'rb') as f:
             r = ctrl.set_led_movie_full(f)
-            logger.info("Twinkly - %s", r.data)
             
             # also need the size of the file
             num_frames = r.data.get("frames_number")
@@ -162,11 +166,8 @@ class TwinklyTag(NFCTag):
             file_size = os.path.getsize(pattern_file)
             num_frames = int(file_size / bytes_per_frame)
 
-        logger.info("Twinkly - movie config - num_leds: %s, bytes per frame: %s, num_frames: %s", num_leds, bytes_per_frame, num_frames)
         r = ctrl.set_led_movie_config(40, num_frames, num_leds)
-        logger.info("Twinkly - %s", r.data)
         r = ctrl.set_mode("movie")
-        logger.info("Twinkly - %s", r.data)
 
 
 class NFCTagStore():
