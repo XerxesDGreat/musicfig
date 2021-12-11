@@ -76,6 +76,15 @@ def init_app():
     def not_found(error):
         return render_template('404.html'), 404
 
+    class FlaskThread(Thread):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.app = app
+        
+        def run(self):
+            with self.app.app_context():
+                super().run()
+
     with app.app_context(), app.test_request_context():
         from .web import web as web_blueprint
         app.register_blueprint(web_blueprint)
@@ -88,7 +97,7 @@ def init_app():
         from .lego import Base
         def connect_lego():
             global lego_thread
-            lego_thread = Thread(target=Base)
+            lego_thread = FlaskThread(target=Base)
             lego_thread.daemon = True
             lego_thread.start()
 
