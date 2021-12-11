@@ -89,8 +89,6 @@ def init_app():
         from .web import web as web_blueprint
         app.register_blueprint(web_blueprint)
 
-        from . import events
-
         db.create_all()
 
         from .lego import Base
@@ -102,6 +100,7 @@ def init_app():
 
         connect_lego()
 
+        from . import events
         socketio.on_namespace(events.TagNamespace())
 
         logger.info('Musicfig %s started.' % app_version)
