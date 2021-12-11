@@ -315,7 +315,7 @@ class Base():
                 if isinstance(nfc_tag, NFCTag) and not isinstance(nfc_tag, LegacyTag):
                     logging.info("doing new")
                     nfc_tag.on_add()
-                    self.base.fade(tag_event.pad_num, nfc_tag.get_pad_color())
+                    #self.base.fade(tag_event.pad_num, nfc_tag.get_pad_color())
                     # Unknown tag. Display UID.
                 
                 else:
