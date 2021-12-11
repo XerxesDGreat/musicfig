@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from . import socketio
+from . import socketio, mp3player, spotify
 from .spotify import SpotifyClientConfig, SpotifyClient
 from collections import namedtuple
 from flask import current_app
@@ -11,8 +11,6 @@ from musicfig.nfc_tag import LegacyTag, TagManager, NFCTag
 import binascii
 import glob
 import logging
-import mp3player
-import spotify
 import os
 import random
 import threading
