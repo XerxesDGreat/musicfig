@@ -6,7 +6,7 @@ from collections import namedtuple
 from flask import current_app
 from musicfig import colors, webhook
 from mutagen.mp3 import MP3
-from musicfig.nfc_tag import LegacyTag, TagManager, NFCTag
+from musicfig.nfc_tag import LegacyTag, NFCTagManager, NFCTag
 
 import binascii
 import glob
@@ -254,7 +254,7 @@ class Base():
         current_tag = None
         previous_tag = None
         mp3state = None
-        nfc = TagManager(current_app)
+        nfc = NFCTagManager.get_instance(current_app)
         self.base = Dimensions()
         logger.info("Lego Dimensions base activated.")
         self.initMp3()

@@ -7,7 +7,7 @@ import time
 import xled
 import yaml
 
-from . import events
+from . import events, socketio
 from .models import db, NFCTagModel
 from flask import Blueprint, request, render_template, \
                   flash, g, session, redirect, url_for, \
@@ -18,6 +18,8 @@ from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
 
+# all uses of current_app or app_context in here are for config; try just passing those
+# config values, mayhap?
 
 class NFCTag():
     def __init__(self, identifier, required_kwargs=[], app_context=None, **kwargs):
@@ -226,6 +228,11 @@ class NFCTagStore():
     def get_nfc_tag_by_id(id):
         return NFCTagModel.query.filter(NFCTagModel.id == id).first()
 
+    @staticmethod
+    def delete_nfc_tag_by_id(id):
+        # let's do nothing for the time being
+        return True
+
 
 TAG_REGISTRY_MAP = {
     "webhook": WebhookTag,
@@ -233,7 +240,7 @@ TAG_REGISTRY_MAP = {
     "twinkly": TwinklyTag,
 }
 
-class TagManager():
+class NFCTagManager():
     # todo; merge this class with NFCTagStore
     def __init__(self, app_context=None):
         self.app_context = app_context
@@ -244,6 +251,14 @@ class TagManager():
 
         if self.should_import_file():
             self.import_file()
+
+    instance = None
+
+    @classmethod
+    def get_instance(cls, app_context=None):
+        if cls.instance is None:
+            cls.instance = NFCTagManager(app_context)
+        return cls.instance
 
 
     def should_import_file(self):
@@ -304,3 +319,11 @@ class TagManager():
             )
         logger.info("built tag of type %s from info %s", type(nfc_tag), nfc_tag_model)
         return nfc_tag
+    
+
+    def delete_nfc_tag_by_id(self, id):
+        if id is None:
+            return
+        success = NFCTagStore.delete_nfc_tag_by_id(id)
+        socketio.emit("tag_deleted", {"tag_id": id})
+        

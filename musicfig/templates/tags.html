@@ -11,7 +11,7 @@
 
         socket.on('loop', function(event, ...args) {
             console.log('got loop event');
-        })
+        });
 
         socket.onAny(function(event, ...args) {
             console.log(`got ${event}`);
@@ -19,8 +19,13 @@
 
         function doDelete(tag_id) {
             console.log("deleting tag " + tag_id);
-            socket.emit('tag_delete', {"tag_id": tag_id});
+            socket.emit('do_tag_delete', {"tag_id": tag_id});
         };
+
+        socket.on('tag_deleted', function(event, ...args) {
+            // we could do fancy things to try and pull the thing out of the page... but we won't
+            location.reload();
+        });
     </script>
 </head>
 <body>
