@@ -340,21 +340,25 @@ class Base():
                         command = nfc_tag['command']
                         logger.info('Running command %s' % command)
                         os.system(command)
-                    if 'spotify' in nfc_tag and self.spotify_client.is_activated():
-                        # if current_tag == previous_tag:
-                        #     self.startLightshow(spotify.resume())
-                        #     continue
-                        try:
-                            position_ms = int(nfc_tag['position_ms'])
-                        except Exception:
-                            position_ms = 0
-                        self.stopMp3()
-                        duration_ms = self.spotify_client.spotcast(nfc_tag['spotify'],
-                                                        position_ms)
-                        # if duration_ms > 0:
-                        #     self.startLightshow(duration_ms)
-                        # else:
-                        #     self.base.flash_pad_color(pad = tag_event.pad_num, on_length = 10, off_length = 10,
-                        #                         pulse_count = 6, colour = self.RED)
-                    if 'spotify' in nfc_tag and not self.spotify_client.is_activated():
-                        current_tag = previous_tag
+                    if 'spotify' in nfc_tag:
+                        logger.info("spotify tag")
+                        if self.spotify_client.is_activated():
+                            logger.info("activated")
+                            # if current_tag == previous_tag:
+                            #     self.startLightshow(spotify.resume())
+                            #     continue
+                            try:
+                                position_ms = int(nfc_tag['position_ms'])
+                            except Exception:
+                                position_ms = 0
+                            self.stopMp3()
+                            duration_ms = self.spotify_client.spotcast(nfc_tag['spotify'],
+                                                            position_ms)
+                            # if duration_ms > 0:
+                            #     self.startLightshow(duration_ms)
+                            # else:
+                            #     self.base.flash_pad_color(pad = tag_event.pad_num, on_length = 10, off_length = 10,
+                            #                         pulse_count = 6, colour = self.RED)
+                        else: 
+                            logger.info("not activated")
+                            current_tag = previous_tag
