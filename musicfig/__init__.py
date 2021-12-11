@@ -100,8 +100,8 @@ def init_app():
 
         connect_lego()
 
-        from . import events
-        socketio.on_namespace(events.TagNamespace())
+        from .events import NFCTagHandler
+        socketio.on_namespace(NFCTagHandler())
 
         logger.info('Musicfig %s started.' % app_version)
         if app.config['CLIENT_ID']:
