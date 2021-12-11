@@ -4,7 +4,7 @@ import logging
 
 from . import web
 from ..spotify import SpotifyClientConfig, SpotifyClient
-from flask import Blueprint, \
+from flask import \
     current_app, \
     redirect, \
     render_template, \
@@ -20,12 +20,10 @@ spotify_client = SpotifyClient.get_client(client_config=spotify_client_config)
 
 @web.route("/", methods=["GET"])
 def main():
-    logger.info("asdf")
     user_id = session.get("user", None)
     if user_id == None:
         # Auto login
         return redirect("/login", 307)
-    logger.info(user_id)
     spotify_client.set_current_user_id(user_id)
     return render_template("index.html", user=user_id)
 

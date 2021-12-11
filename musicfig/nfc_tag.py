@@ -304,9 +304,3 @@ class TagManager():
             )
         logger.info("built tag of type %s from info %s", type(nfc_tag), nfc_tag_model)
         return nfc_tag
-
-nfc_tag = Blueprint('nfc_tag', __name__, url_prefix="/tags")
-
-@nfc_tag.route('/', methods=['GET'])
-def index():
-    return render_template("tag_index.html", nfc_tags=NFCTagStore.get_all_nfc_tags())

@@ -89,9 +89,6 @@ def init_app():
         from .web import web as web_blueprint
         app.register_blueprint(web_blueprint)
 
-        from .nfc_tag import nfc_tag as nfc_tag_blueprint
-        app.register_blueprint(nfc_tag_blueprint)
-
         db.create_all()
 
         from .lego import Base

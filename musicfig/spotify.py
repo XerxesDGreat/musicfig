@@ -192,9 +192,6 @@ class SpotifyClient:
                 logger.info("started playing media identified by %s", spotify_uri)
             except HTTPError as e:
                 logger.exception("Failed spotcast with uri: %s due to error: %s", spotify_uri, str(e))
-                logger.info("finding more devices")
-                devices = self.client.playback_devices()
-                logger.info(devices)
                 return
         
         if media_type != "track":
