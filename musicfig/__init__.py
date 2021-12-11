@@ -2,7 +2,6 @@
 import os
 import logging
 
-from . import lego
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
@@ -86,9 +85,10 @@ def init_app():
 
         db.create_all()
 
+        from .lego import Base
         def connect_lego():
             global lego_thread
-            lego_thread = Thread(target=lego.Base)
+            lego_thread = Thread(target=Base)
             lego_thread.daemon = True
             lego_thread.start()
 
