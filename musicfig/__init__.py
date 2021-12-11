@@ -61,7 +61,7 @@ socketio = SocketIO()
 lego_thread = Thread()
 
 from . import models
-from . import events
+#from . import events
 
 def init_app():
     app = Flask(__name__,
@@ -88,6 +88,8 @@ def init_app():
     with app.app_context(), app.test_request_context():
         from .web import web as web_blueprint
         app.register_blueprint(web_blueprint)
+
+        from . import events
 
         db.create_all()
 
