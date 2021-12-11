@@ -229,7 +229,9 @@ class NFCTagStore():
 
     @staticmethod
     def delete_nfc_tag_by_id(id):
-        # let's do nothing for the time being
+        to_delete = NFCTagModel.query.filter(NFCTagModel.id == id).first()
+        db.session.delete(to_delete)
+        db.session.commit()
         return True
 
 
