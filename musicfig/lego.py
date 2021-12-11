@@ -4,7 +4,7 @@ from . import socketio, mp3player, spotify
 from .spotify import SpotifyClientConfig, SpotifyClient
 from collections import namedtuple
 from flask import current_app
-from musicfig import webhook
+from musicfig import colors, webhook
 from mutagen.mp3 import MP3
 from musicfig.nfc_tag import LegacyTag, TagManager, NFCTag
 
@@ -141,23 +141,23 @@ class Base():
 
         self.spotify_client = SpotifyClient.get_client(client_config=spotify_client_config)
 
-    def randomLightshow(self,duration = 60):
-        logger.info("Lightshow started for %s seconds." % duration)
-        self.lightshowThread = threading.currentThread()
-        t = time.perf_counter()
-        while getattr(self.lightshowThread, "do_run", True) and (time.perf_counter() - t) < duration:
-            pad = random.randint(0,2)
-            self.colour = random.randint(0,len(self.COLOURS)-1)
-            self.base.change_pad_color(pad,eval(self.COLOURS[self.colour]))
-            time.sleep(round(random.uniform(0,0.5), 1))
-        self.base.change_pad_color(0,self.OFF)
+    # def randomLightshow(self,duration = 60):
+    #     logger.info("Lightshow started for %s seconds." % duration)
+    #     self.lightshowThread = threading.currentThread()
+    #     t = time.perf_counter()
+    #     while getattr(self.lightshowThread, "do_run", True) and (time.perf_counter() - t) < duration:
+    #         pad = random.randint(0,2)
+    #         self.colour = random.randint(0,len(self.COLOURS)-1)
+    #         self.base.change_pad_color(pad,eval(self.COLOURS[self.colour]))
+    #         time.sleep(round(random.uniform(0,0.5), 1))
+    #     self.base.change_pad_color(0,self.OFF)
 
-    def startLightshow(self,duration_ms):
-        if switch_lights:
-            self.lightshowThread = threading.Thread(target=self.randomLightshow,
-                args=([(duration_ms / 1000)]))
-            self.lightshowThread.daemon = True
-            self.lightshowThread.start()
+    # def startLightshow(self,duration_ms):
+    #     if switch_lights:
+    #         self.lightshowThread = threading.Thread(target=self.randomLightshow,
+    #             args=([(duration_ms / 1000)]))
+    #         self.lightshowThread.daemon = True
+    #         self.lightshowThread.start()
 
     def initMp3(self):
         self.p = mp3player.Player()
@@ -183,7 +183,7 @@ class Base():
 
             audio = MP3(mp3file)
             mp3_duration = audio.info.length
-            self.startLightshow(mp3_duration * 1000)
+            #self.startLightshow(mp3_duration * 1000)
         else:
             self.p.playlist(filename)
             mp3_duration = 0
@@ -193,7 +193,7 @@ class Base():
                     mp3_duration = mp3_duration + audio.info.length
             else:
                 logger.info('Check the folder, maybe empty!!!')
-            self.startLightshow(mp3_duration * 1000)
+            #self.startLightshow(mp3_duration * 1000)
 
     def stopMp3(self):
         global mp3state
@@ -250,7 +250,7 @@ class Base():
         global previous_tag
         global mp3state
         global p
-        global switch_lights
+        #global switch_lights
         current_tag = None
         previous_tag = None
         mp3state = None
@@ -258,12 +258,13 @@ class Base():
         self.base = Dimensions()
         logger.info("Lego Dimensions base activated.")
         self.initMp3()
-        switch_lights = current_app.config["RUN_LIGHT_SHOW_DEFAULT"]
-        logger.info('Lightshow is %s' % switch_lights) #("disabled", "enabled")[switch_lights])
-        if switch_lights:
-            self.base.change_pad_color(0,self.GREEN)
-        else:
-            self.base.change_pad_color(0,self.OFF)
+        #switch_lights = current_app.config["RUN_LIGHT_SHOW_DEFAULT"]
+        #logger.info('Lightshow is %s' % switch_lights) #("disabled", "enabled")[switch_lights])
+        self.base.change_pad_color(0, colors.DIM)
+        # if switch_lights:
+        #     self.base.change_pad_color(0,self.GREEN)
+        # else:
+        #     self.base.change_pad_color(0,self.OFF)
 
         i = 0
         while True:
@@ -281,28 +282,28 @@ class Base():
             logging.info(tag_event)
 
             if tag_event.was_removed:
+                self.base.change_pad_color(pad=tag_event.pad_num, colour=colors.DIM)
                 if tag_event.identifier == current_tag:
-                    try:
-                        self.lightshowThread.do_run = False
-                        self.lightshowThread.join()
-                    except Exception:
-                        pass
+                    # try:
+                    #     self.lightshowThread.do_run = False
+                    #     self.lightshowThread.join()
+                    # except Exception:
+                    #     pass
                     self.pauseMp3()
                     if self.spotify_client.is_activated():
                         self.spotify_client.pause()
             else:
-                if switch_lights:
-                    self.base.change_pad_color(pad = tag_event.pad_num, colour = self.BLUE)
+                self.base.change_pad_color(pad=tag_event.pad_num, colour=colors.BLUE)
 
                 mp3_dir = current_app.config["MP3_DIR"]
                 ##logger.debug(mp3_dir)
 
                 # Stop any current songs and light shows
-                try:
-                    self.lightshowThread.do_run = False
-                    self.lightshowThread.join()
-                except Exception:
-                    pass
+                # try:
+                #     self.lightshowThread.do_run = False
+                #     self.lightshowThread.join()
+                # except Exception:
+                #     pass
 
                 # nfc_tag could be a dict or an NFCTag object
                 nfc_tag = nfc.get_nfc_tag_by_id(tag_event.identifier)
@@ -314,7 +315,7 @@ class Base():
                 if isinstance(nfc_tag, NFCTag) and not isinstance(nfc_tag, LegacyTag):
                     logging.info("doing new")
                     nfc_tag.on_add()
-                    self.base.change_pad_color(tag_event.pad_num, nfc_tag.get_pad_color())
+                    self.base.fade(tag_event.pad_num, nfc_tag.get_pad_color())
                     # Unknown tag. Display UID.
                 
                 else:
@@ -345,7 +346,8 @@ class Base():
                         if self.spotify_client.is_activated():
                             logger.info("activated")
                             if current_tag == previous_tag:
-                                self.startLightshow(self.spotify_client.resume())
+                                self.spotify_client.resume()
+                                #self.startLightshow(self.spotify_client.resume())
                                 continue
                             try:
                                 position_ms = int(nfc_tag['position_ms'])
@@ -354,11 +356,11 @@ class Base():
                             self.stopMp3()
                             duration_ms = self.spotify_client.spotcast(nfc_tag['spotify'],
                                                             position_ms)
-                            if duration_ms > 0:
-                                self.startLightshow(duration_ms)
-                            else:
-                                self.base.flash_pad_color(pad = tag_event.pad_num, on_length = 10, off_length = 10,
-                                                    pulse_count = 6, colour = self.RED)
+                            # if duration_ms > 0:
+                            #     self.startLightshow(duration_ms)
+                            #else:
+                            self.base.flash_pad_color(pad=tag_event.pad_num, on_length=10,
+                                off_length=10, pulse_count=2, colour=self.RED)
                         else: 
                             logger.info("not activated")
                             current_tag = previous_tag
