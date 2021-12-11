@@ -25,7 +25,7 @@ def main():
     logger.info(user)
     # we have a user here
     set_user(user)
-    spotify_client.set_user(user)
+    spotify_client.set_current_user(user)
     return render_template("index.html", user=user)
 
 
@@ -45,7 +45,7 @@ def login_callback():
     code = request.args.get("code", None)
 
     token = spotify_client.get_user_token_for_code(code)
-    user = spotify_client.get_current_user_from_token(token)
+    user = spotify_client.get_user_from_token(token)
 
     session["user"] = user.id
 

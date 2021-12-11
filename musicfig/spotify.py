@@ -47,7 +47,7 @@ class SpotifyClient:
     def get_user_token_for_code(self, code):
         return self.credentials.request_user_token(code)
     
-    def get_current_user_from_token(self, token):
+    def get_user_from_token(self, token):
         with self.client.token_as(token):
             user = self.client.current_user()
         self.users[user.id] = token
