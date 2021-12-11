@@ -1,15 +1,15 @@
 import logging
 
-from .spotify import SpotifyClientConfig, SpotifyClient, set_user
+from . import web
+from ..spotify import SpotifyClientConfig, SpotifyClient, set_user
 from flask import Blueprint, \
-    render_template, \
-    session, \
+    current_app, \
     redirect, \
-    current_app
+    render_template, \
+    request, \
+    session
 
 logger = logging.Logger(__name__)
-
-web = Blueprint("web", __name__)
 
 spotify_client_config = SpotifyClientConfig(current_app.config.get("CLIENT_ID"),
     current_app.config.get("CLIENT_SECRET"), current_app.config.get("REDIRECT_URI"))
@@ -38,3 +38,17 @@ def login():
         auth_url = spotify_client.get_authorization_url()
     
     return redirect(auth_url, 307)
+
+
+@web.route("/callback", methods=["GET"])
+def login_callback():
+    code = request.args.get("code", None)
+
+    token = spotify_client.get_user_token_for_code(code)
+    user = spotify_client.get_current_user_from_token(token)
+
+    session["user"] = user.id
+
+    logger.info("Spotify activated.")
+
+    return redirect("/", 307)

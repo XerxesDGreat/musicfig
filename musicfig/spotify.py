@@ -21,7 +21,8 @@ SpotifyClientConfig = namedtuple("SpotifyClientConfig", ["client_id", "client_se
 
 class SpotifyClient:
     def __init__(self, client_config=None):
-        self.user = None
+        self.current_user = None
+        self.users = {}
         self.config = client_config
         self.credentials = None
         self.client = None
@@ -37,11 +38,20 @@ class SpotifyClient:
     def get_authorization_url(self):
         return self.credentials.user_authorisation_url(scope=tk.scope.every)
 
-    def get_user(self):
-        return self.user
+    def get_current_user(self):
+        return self.current_user
     
-    def set_user(self, user):
-        self.user = user
+    def set_current_user(self, user):
+        self.current_user = user
+    
+    def get_user_token_for_code(self, code):
+        return self.credentials.request_user_token(code)
+    
+    def get_current_user_from_token(self, token):
+        with self.client.token_as(token):
+            user = self.client.current_user()
+        self.users[user.id] = token
+        return user
         
 
 conf = (current_app.config['CLIENT_ID'], 
@@ -168,22 +178,6 @@ def set_user(new_user):
 def get_user():
     global user
     return user
-
-@spotify.route('/callback', methods=['GET'])
-def login_callback():
-    global users
-    code = request.args.get('code', None)
-
-    token = cred.request_user_token(code)
-    with tkspotify.token_as(token):
-            info = tkspotify.current_user()
-
-    session['user'] = info.id
-    users[info.id] = token
-
-    logger.info('Spotify activated.')
-
-    return redirect('/', 307)
 
 def user_token(user):
     if user == 'local':
