@@ -134,8 +134,10 @@ class Base():
         self.base = self.startLego()
 
     def _init_spotify(self):
-        spotify_client_config = SpotifyClientConfig(current_app.config.get("CLIENT_ID"),
-            current_app.config.get("CLIENT_SECRET"), current_app.config.get("REDIRECT_URI"))
+        cur_obj = current_app._get_current_object()
+        config = cur_obj.config
+        spotify_client_config = SpotifyClientConfig(config.get("CLIENT_ID"),
+            config.get("CLIENT_SECRET"), config.get("REDIRECT_URI"))
 
         self.spotify_client = SpotifyClient(client_config=spotify_client_config)
 
