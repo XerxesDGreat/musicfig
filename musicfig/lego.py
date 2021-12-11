@@ -20,18 +20,18 @@ import usb.util
 
 logger = logging.getLogger(__name__)
 
-class Pad():
-    def __init__(self, id):
-        self.id = id
-        self.nfc_tag_list = {}
+# class Pad():
+#     def __init__(self, id):
+#         self.id = id
+#         self.nfc_tag_list = {}
     
     
-    def add_nfc_tag(self, identifier, nfc_tag):
-        self.nfc_tag_list.set(identifier, nfc_tag)
+#     def add_nfc_tag(self, identifier, nfc_tag):
+#         self.nfc_tag_list.set(identifier, nfc_tag)
     
 
-    def remove_nfc_tag_by_id(self, identifier):
-        self.nfc_tag_list.pop(identifier)
+#     def remove_nfc_tag_by_id(self, identifier):
+#         self.nfc_tag_list.pop(identifier)
 
 
 # named tuple allows for less string parsing and guessing what goes where
@@ -118,17 +118,17 @@ class Dimensions():
 
 class Base():
     def __init__(self):
-        self.OFF   = [0,0,0]
-        self.RED   = [100,0,0]
-        self.GREEN = [0,100,0]
-        self.BLUE  = [0,0,100]
-        self.PINK = [100,75,79]
-        self.ORANGE = [100,64,0]
-        self.PURPLE = [100,0,100]
-        self.LBLUE = [100,100,100]
-        self.OLIVE = [50,50,0]
-        self.COLOURS = ['self.RED', 'self.GREEN', 'self.BLUE', 'self.PINK', 
-                        'self.ORANGE', 'self.PURPLE', 'self.LBLUE', 'self.OLIVE']
+        # self.OFF   = [0,0,0]
+        # self.RED   = [100,0,0]
+        # self.GREEN = [0,100,0]
+        # self.BLUE  = [0,0,100]
+        # self.PINK = [100,75,79]
+        # self.ORANGE = [100,64,0]
+        # self.PURPLE = [100,0,100]
+        # self.LBLUE = [100,100,100]
+        # self.OLIVE = [50,50,0]
+        # self.COLOURS = ['self.RED', 'self.GREEN', 'self.BLUE', 'self.PINK', 
+        #                 'self.ORANGE', 'self.PURPLE', 'self.LBLUE', 'self.OLIVE']
                         
         self._init_spotify()
         self.base = self.startLego()

@@ -168,6 +168,8 @@ class SpotifyClient:
                 ms_remaining_in_song = song.duration_ms - currently_playing.progress_ms
             except HTTPError as e:
                 logger.exception("Failed resuming playback: %s", str(e))
+                devices = self.client.playback_devices()
+                logger.info(devices)
 
         return ms_remaining_in_song
     
