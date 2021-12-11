@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 spotify_client_config = SpotifyClientConfig(current_app.config.get("CLIENT_ID"),
     current_app.config.get("CLIENT_SECRET"), current_app.config.get("REDIRECT_URI"))
 
-spotify_client = SpotifyClient(client_config=spotify_client_config)
+spotify_client = SpotifyClient.get_client(client_config=spotify_client_config)
 
 @web.route("/", methods=["GET"])
 def main():

@@ -2,12 +2,10 @@
 
 import logging
 import tekore as tk
-import threading
 import unidecode
 
 from .models import db, Song
 from collections import namedtuple
-from flask import current_app
 from tekore._convert import to_uri
 from tekore._error import HTTPError
 
@@ -18,6 +16,15 @@ ONE_MINUTE_IN_MS = 60 * 1000 # 60 seconds
 SpotifyClientConfig = namedtuple("SpotifyClientConfig", ["client_id", "client_secret", "redirect_uri"])
 
 class SpotifyClient:
+
+    _client = None
+
+    @classmethod
+    def get_client(cls, client_config=None):
+        if cls._client is None:
+            cls._client = SpotifyClient(client_config)
+        return cls._client
+
     def __init__(self, client_config=None):
         self.current_user_id = None
         self.user_token_map = {"local": None} # `local` is apparently a special user with no token; keep it
@@ -66,6 +73,7 @@ class SpotifyClient:
     
     def set_current_user_id(self, user):
         self.current_user_id = user
+        logger.info(self.current_user_id)
     
     def get_user_token_for_code(self, code):
         return self.credentials.request_user_token(code)

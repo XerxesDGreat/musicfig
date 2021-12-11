@@ -139,7 +139,7 @@ class Base():
         spotify_client_config = SpotifyClientConfig(config.get("CLIENT_ID"),
             config.get("CLIENT_SECRET"), config.get("REDIRECT_URI"))
 
-        self.spotify_client = SpotifyClient(client_config=spotify_client_config)
+        self.spotify_client = SpotifyClient.get_client(client_config=spotify_client_config)
 
     def randomLightshow(self,duration = 60):
         logger.info("Lightshow started for %s seconds." % duration)
