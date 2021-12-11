@@ -112,7 +112,8 @@ class SpotifyClient:
         return song
     
     def get_current_users_current_playing(self):
-        with self.client.token_as(self.get_current_user_token):
+        token = self.get_current_user_token()
+        with self.client.token_as(token):
             try:
                 currently_playing = self.client.playback_currently_playing()
             except HTTPError as e:
