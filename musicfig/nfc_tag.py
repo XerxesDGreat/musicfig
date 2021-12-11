@@ -271,6 +271,8 @@ class NFCTagManager():
         *** note, this is destructive in nature; yaml will completely overwrite
         the database ***
         """
+        if not os.path.isfile(self.nfc_tags_file):
+            return False
         last_db_update = NFCTagStore.get_last_updated_time()
         last_file_update = int(os.stat(self.nfc_tags_file).st_mtime)
         logger.info("last db updated: %s, last file updated: %s", last_db_update, last_file_update)
