@@ -22,3 +22,6 @@ class TagNamespace(Namespace):
 
     def on_json(self, data):
         logger.info("incoming json information: %s", data)
+    
+    def on_tag_delete(self, data):
+        logger.info("incoming tag delete event: %s", data)
