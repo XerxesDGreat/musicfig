@@ -1,11 +1,22 @@
 <head>
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="styles/cute-alert.css"
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" />
     <meta charset="utf-8" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
-    <script src="js/cute-alert.js" type="text/javascript"></script>
+    
     <script type="text/javascript" charset="utf-8">
+        function t(message, destination, close) {
+            Toastify({
+                text: message,
+                duration: 3000,
+                destination: destination,
+                newWindow: false,
+                close: close,
+                gravity: bottom,
+                position: right
+            }).showToast();
+        }
         var socket = io();
         socket.on('connect', function() {
             socket.emit('comm', {data: 'I\'m connected!'});
@@ -30,13 +41,7 @@
         });
 
         socket.on("new_tag", function(event, ...args) {
-            cuteToast({
-                type: "info", // or 'info', 'error', 'warning'
-                message: "New Tag Added (click here)",
-                timer: 5000
-            }).then((e) => {
-                console.log(e);
-            });
+            t("new tag has been placed", "https://www.google.com", true);
         });
     </script>
 </head>
@@ -70,5 +75,6 @@
             {% endfor %}
         </tbody>
     </table>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 </body>
     
