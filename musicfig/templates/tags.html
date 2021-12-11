@@ -1,8 +1,10 @@
 <head>
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}">
-         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="styles/cute-alert.css"
     <meta charset="utf-8" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+    <script src="js/cute-alert.js" type="text/javascript"></script>
     <script type="text/javascript" charset="utf-8">
         var socket = io();
         socket.on('connect', function() {
@@ -19,12 +21,22 @@
 
         function doDelete(tag_id) {
             console.log("deleting tag " + tag_id);
-            socket.emit('do_tag_delete', {"tag_id": tag_id});
+            socket.emit("do_tag_delete", {"tag_id": tag_id});
         };
 
-        socket.on('tag_deleted', function(event, ...args) {
+        socket.on("tag_deleted", function(event, ...args) {
             // we could do fancy things to try and pull the thing out of the page... but we won't
             location.reload();
+        });
+
+        socket.on("new_tag", function(event, ...args) {
+            cuteToast({
+                type: "info", // or 'info', 'error', 'warning'
+                message: "New Tag Added (click here)",
+                timer: 5000
+            }).then((e) => {
+                console.log(e);
+            });
         });
     </script>
 </head>
