@@ -1,5 +1,6 @@
 <head>
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}">
+         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <meta charset="utf-8" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
     <script type="text/javascript" charset="utf-8">
@@ -15,6 +16,11 @@
         socket.onAny(function(event, ...args) {
             console.log(`got ${event}`);
         });
+
+        function doDelete(tag_id) {
+            console.log("deleting tag " + tag_id);
+            socket.emit('tag_delete', {"tag_id": tag_id});
+        };
     </script>
 </head>
 <body>
@@ -22,6 +28,7 @@
     <table>
         <thead>
             <tr>
+                <th>Actions</th>
                 <th>Id</th>
                 <th>Name</th>
                 <th>Description</th>
@@ -33,6 +40,9 @@
         <tbody>
             {% for nfc_tag in nfc_tags %}
             <tr>
+                <td>
+                    <button onclick="doDelete('{{ nfc_tag.id }}')"><i class="fa fa-trash-o"></i></button>
+                </td>
                 <td>{{ nfc_tag.id }}</td>
                 <td>{{ nfc_tag.name }}</td>
                 <td>{{ nfc_tag.description }}</td>

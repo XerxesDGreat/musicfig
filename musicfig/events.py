@@ -19,3 +19,6 @@ class TagNamespace(Namespace):
 
     def publish_new_tag_event(self, id):
         socketio.emit('new_tag', {"id": id})
+
+    def on_json(self, data):
+        logger.info("incoming json information: %s", data)
