@@ -19,13 +19,12 @@ from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
 
-# all uses of current_app or app_context in here are for config; try just passing those
+# all uses of current_app in here are for config; try just passing those
 # config values, mayhap?
 
 class NFCTag():
-    def __init__(self, identifier, name=None, description=None, attributes={}, app_context=None, **kwargs):
+    def __init__(self, identifier, name=None, description=None, attributes={}, **kwargs):
         self.identifier = identifier
-        self.app_context = app_context
         self.name = name
         self.description = description
         self.attributes = attributes
@@ -101,7 +100,7 @@ class SlackTag(NFCTag, WebhookMixin):
     
     def _init_attributes(self):
         super()._init_attributes()
-        self.webhook_url = self.app_context.config.get("SLACK_WEBHOOK_URL")
+        self.webhook_url = current_app.config.get("SLACK_WEBHOOK_URL")
         self.text = self.attributes["text"]
     
     def on_add(self):
@@ -115,7 +114,7 @@ class TwinklyTag(NFCTag):
     
     def _init_attributes(self):
         super()._init_attributes()
-        self.pattern_dir = self.app_context.config.get("TWINKLY_PATTERN_DIR",
+        self.pattern_dir = current_app.config.get("TWINKLY_PATTERN_DIR",
             os.path.join("..", "assets", "twinkly_patterns"))
         a = current_app.config.get("TWINKLY_PATTERN_DIR")
         logger.info(a)
@@ -125,8 +124,8 @@ class TwinklyTag(NFCTag):
         if TwinklyTag.control_interface is not None:
             return TwinklyTag.control_interface
         
-        ip_address = self.app_context.config.get("TWINKLY_IP_ADDRESS")
-        mac_address = self.app_context.config.get("TWINKLY_MAC_ADDRESS")
+        ip_address = current_app.config.get("TWINKLY_IP_ADDRESS")
+        mac_address = current_app.config.get("TWINKLY_MAC_ADDRESS")
         if ip_address and mac_address:
             TwinklyTag.control_interface = xled.ControlInterface(ip_address, mac_address)
         else:
@@ -235,6 +234,15 @@ class NFCTagStore():
         db.session.delete(to_delete)
         db.session.commit()
         return True
+    
+    @staticmethod
+    def create_nfc_tag(id, type, name=None, description=None, attributes=None):
+        model = NFCTagModel(id=id, name=name, description=description, type=type,
+                            attr=attributes, last_updated=NFCTagStore.get_current_timestamp())
+        db.session.add(model)
+        db.session.commit()
+        return model
+
 
 
 TAG_REGISTRY_MAP = {
@@ -245,9 +253,8 @@ TAG_REGISTRY_MAP = {
 
 class NFCTagManager():
     # todo; merge this class with NFCTagStore
-    def __init__(self, app_context=None):
-        self.app_context = app_context
-        self.nfc_tags_file = app_context.config.get("NFC_TAG_FILE")
+    def __init__(self):
+        self.nfc_tags_file = current_app.config.get("NFC_TAG_FILE")
         self.last_updated = -1
         self.tags = {}
         self._tags = {}
@@ -258,9 +265,9 @@ class NFCTagManager():
     instance = None
 
     @classmethod
-    def get_instance(cls, app_context=None):
+    def get_instance(cls):
         if cls.instance is None:
-            cls.instance = NFCTagManager(app_context)
+            cls.instance = NFCTagManager()
         return cls.instance
 
 
@@ -295,8 +302,7 @@ class NFCTagManager():
         return nfc_tag_class(id,
                              name=nfc_tag_model.name,
                              description=nfc_tag_model.description,
-                             attributes=nfc_tag_model.get_attr_object(),
-                             app_context=self.app_context
+                             attributes=nfc_tag_model.get_attr_object()
                              )
 
 
@@ -332,7 +338,8 @@ class NFCTagManager():
         if isinstance(attributes, dict):
             attributes = json.dumps(dict)
 
-        NFCTagStore.create_nfc_tag(id, tag_type, name, description, attributes)
+        model_obj = NFCTagStore.create_nfc_tag(id, tag_type, name, description, attributes)
+        return self.nfc_tag_from_model(model_obj)
 
         
 
