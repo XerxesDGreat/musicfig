@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from ctypes import ArgumentError
 import json
 import logging
 import os
@@ -22,15 +23,29 @@ logger = logging.getLogger(__name__)
 # config values, mayhap?
 
 class NFCTag():
-    def __init__(self, identifier, required_kwargs=[], app_context=None, **kwargs):
+    def __init__(self, identifier, name=None, description=None, attributes={}, app_context=None, **kwargs):
         self.identifier = identifier
         self.app_context = app_context
-        self._verify_kwargs(required_kwargs, **kwargs)
+        self.name = name
+        self.description = description
+        self.attributes = attributes
+        self._init_attributes()
     
-    def _verify_kwargs(self, required_kwargs, **kwargs):
-        for required_kwarg in required_kwargs:
-            if required_kwarg not in kwargs:
-                raise KeyError("missing required key '%s'" % required_kwarg)
+    def _init_attributes(self):
+        self._verify_attributes()
+
+    def _verify_attributes(self):
+        for required_attribute in self._get_required_attributes():
+            if required_attribute not in attributes:
+                raise KeyError("missing required key '%s'" % required_attribute)
+    
+    def _get_required_attributes(self):
+        if hasattr(self, 'required_attributes'):
+            return getattr(self, 'required_attributes')
+        return []
+    
+    def get_type(self):
+        return self.__class__.__name__.lower().replace("Tag", "")
 
     def on_add(self):
         pass
@@ -58,9 +73,7 @@ class UnknownTag(NFCTag):
 
 
 class LegacyTag(NFCTag):
-    def __init__(self, identifier, app_context=None, **kwargs):
-        super().__init__(identifier, app_context=app_context)
-        self.definition = kwargs
+    pass
 
 
 class WebhookMixin():
@@ -72,14 +85,11 @@ class WebhookMixin():
 
 
 class WebhookTag(NFCTag, WebhookMixin):
-    required_kwargs = ["url"]
+    required_attributes = ["url"]
 
-    def __init__(self, identifier, app_context=None, **kwargs):
-        super().__init__(identifier,
-            required_kwargs=WebhookTag.required_kwargs,
-            app_context=app_context,
-            **kwargs)
-        self.webhook_url = kwargs["url"]
+    def _init_attributes(self):
+        super()._init_attributes()
+        self.webhook_url = self.attributes["url"]
         
     def on_add(self):
         super().on_add()
@@ -87,17 +97,12 @@ class WebhookTag(NFCTag, WebhookMixin):
 
 
 class SlackTag(NFCTag, WebhookMixin):
-    required_kwargs = ["text"]
-
-    def __init__(self, identifier, app_context=None, **kwargs):
-        super().__init__(
-            identifier,
-            required_kwargs=SlackTag.required_kwargs,
-            app_context=app_context,
-            **kwargs
-        )
-        self.webhook_url = app_context.config.get("SLACK_WEBHOOK_URL")
-        self.text = kwargs["text"]
+    required_attributes = ["text"]
+    
+    def _init_attributes(self):
+        super()._init_attributes()
+        self.webhook_url = self.app_context.config.get("SLACK_WEBHOOK_URL")
+        self.text = self.attributes["text"]
     
     def on_add(self):
         super().on_add()
@@ -106,18 +111,15 @@ class SlackTag(NFCTag, WebhookMixin):
 
 class TwinklyTag(NFCTag):
     control_interface = None
-    required_kwargs = ["pattern"]
-
-    def __init__(self, identifier, app_context=None, **kwargs):
-        super().__init__(
-            identifier,
-            required_kwargs=TwinklyTag.required_kwargs,
-            app_context=app_context,
-            **kwargs
-        )
-        self.pattern_dir = app_context.config.get("TWINKLY_PATTERN_DIR",
+    required_attributes = ["pattern"]
+    
+    def _init_attributes(self):
+        super()._init_attributes()
+        self.pattern_dir = self.app_context.config.get("TWINKLY_PATTERN_DIR",
             os.path.join("..", "assets", "twinkly_patterns"))
-        self.pattern = kwargs["pattern"]
+        a = current_app.config.get("TWINKLY_PATTERN_DIR")
+        logger.info(a)
+        self.pattern = self.attributes["pattern"]
 
     def _get_control_interface(self):
         if TwinklyTag.control_interface is not None:
@@ -285,24 +287,17 @@ class NFCTagManager():
         NFCTagStore.populate_from_dict(nfc_tag_defs)
 
 
-    def nfc_tag_factory(self, id, data, nfc_tag_type=None, name=None, description=None):
+    def nfc_tag_from_model(self, nfc_tag_model):
         # TODO build a composite tag in case we want to do e.g. spotify + webhook;
         # perhaps do a list of types or something?
 
-        # for this, we want the explicitly provided values to rule; those are the new
-        # style of tags. However, we still need to have the old style around to work with
-        if nfc_tag_type is None:
-            nfc_tag_type = data.get("type")
-
-        if nfc_tag_type is None or TAG_REGISTRY_MAP.get(nfc_tag_type) is None:
-            if name is not None:
-                data["name"] = name
-            if description is not None:
-                data["description"] = description
-            return LegacyTag(id, **data)
-        
-        nfc_tag_class = TAG_REGISTRY_MAP.get(nfc_tag_type)
-        return nfc_tag_class(id, app_context=self.app_context, **data)
+        nfc_tag_class = TAG_REGISTRY_MAP.get(nfc_tag_model.type, LegacyTag)
+        return nfc_tag_class(id,
+                             name=nfc_tag_model.name,
+                             description=nfc_tag_model.description,
+                             attributes=nfc_tag_model.attr,
+                             app_context=self.app_context
+                             )
 
 
     def get_nfc_tag_by_id(self, id):
@@ -316,10 +311,7 @@ class NFCTagManager():
         if nfc_tag_model is None:
             nfc_tag = UnknownTag(id)
         else:
-            nfc_tag = self.nfc_tag_factory(id, nfc_tag_model.get_attr_object(),
-                nfc_tag_type=nfc_tag_model.type, name=nfc_tag_model.name,
-                description=nfc_tag_model.description
-            )
+            nfc_tag = self.nfc_tag_from_model(nfc_tag_model)
         logger.info("built tag of type %s from info %s", type(nfc_tag), nfc_tag_model)
         return nfc_tag
     
@@ -329,4 +321,11 @@ class NFCTagManager():
             return
         success = NFCTagStore.delete_nfc_tag_by_id(id)
         socketio.emit("tag_deleted", {"tag_id": id})
+    
+
+    def create_nfc_tag(self, id, tag_type, name=None, description=None, attr=None):
+        if id is None or tag_type is None:
+            raise ArgumentError("must include both id and tag_type")
+        
+
         

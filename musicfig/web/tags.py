@@ -24,5 +24,10 @@ def tag_create_form():
 
 @web.route("/tags/create", methods=["POST"])
 def create_tag():
-    logger.info(request.args)
+    tag_id = request.form.get("id")
+    name = request.form.get("name")
+    description = request.form.get("description")
+    tag_type = request.form.get("tagType")
+    attributes = request.form.get("tagAttributes")
+    logger.info("%s, %s, %s, %s, %s", tag_id, name, description, tag_type, attributes)
     return redirect(url_for("web.tag_list"))
