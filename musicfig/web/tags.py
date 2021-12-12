@@ -16,7 +16,10 @@ logger = logging.getLogger(__name__)
 
 @web.route("/tags", methods=["GET"])
 def tag_list():
-    created_tag_id = session.pop("created_tag_id")
+    try:
+        created_tag_id = session.pop("created_tag_id")
+    except KeyError as e:
+        created_tag_id = None
     return render_template("tags.html", nfc_tags=NFCTagStore.get_all_nfc_tags(), created_tag_id=created_tag_id)
 
 # maybe creating a new one could just be visually represented as adding a new row to the table
