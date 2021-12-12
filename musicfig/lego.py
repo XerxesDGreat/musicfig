@@ -49,6 +49,7 @@ class Dimensions():
                self.change_pad_color(0, colors.OFF)
            signal.signal(signal.SIGKILL, on_kill)
            signal.signal(signal.SIGTERM, on_kill)
+           signal.signal(signal.SIGABRT, on_kill)
         except Exception as e:
             logging.info("failed initialization: %s", e)
             return
