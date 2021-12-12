@@ -58,6 +58,9 @@ class NFCTag():
     def should_do_light_show(self):
         return True
 
+    def should_use_class_based_execution(self):
+        return True
+
 
 class UnknownTag(NFCTag):
     def on_add(self):
@@ -72,7 +75,8 @@ class UnknownTag(NFCTag):
 
 
 class LegacyTag(NFCTag):
-    pass
+    def should_use_class_based_execution(self):
+        return False
 
 
 class WebhookMixin():
@@ -202,6 +206,22 @@ class TwinklyTag(NFCTag):
         end = time.time()
         logger.info("operation %s took %s ms", operation, int((end - start) * 1000))
         return response
+
+class SpotifyTag(NFCTag):
+    required_attributes = ["spotify_uri"]
+
+    def _init_attributes(self):
+        super()._init_attributes()
+        self.spotify_uri = self.attributes["spotify_uri"]
+        try:
+            self.start_position_ms = int(self.attributes.get("start_position_ms"))
+        except (TypeError, ValueError) as e:
+            logging.warning("invalid value [%s] found in start position config")
+            self.start_position_ms = 0
+
+
+    def should_use_class_based_execution(self):
+        return False
 
 
 class NFCTagStore():

@@ -6,7 +6,7 @@ from collections import namedtuple
 from flask import current_app
 from musicfig import colors, webhook
 from mutagen.mp3 import MP3
-from musicfig.nfc_tag import LegacyTag, NFCTagManager, NFCTag
+from musicfig.nfc_tag import LegacyTag, NFCTagManager, NFCTag, SpotifyTag
 
 import binascii
 import glob
@@ -313,36 +313,14 @@ class Base():
                 previous_tag = current_tag
                 current_tag = nfc_tag.identifier
 
-                if isinstance(nfc_tag, NFCTag) and not isinstance(nfc_tag, LegacyTag):
+                if nfc_tag.should_use_class_based_execution():
                     logging.info("doing new")
                     nfc_tag.on_add()
                     #self.base.fade(tag_event.pad_num, nfc_tag.get_pad_color())
                     # Unknown tag. Display UID.
                 
                 else:
-                    if isinstance(nfc_tag, LegacyTag):
-                        nfc_tag = nfc_tag.definition
-
-                    logging.info("doing old: %s", nfc_tag)
-                    # if current_tag == None:
-                    #     previous_tag = tag_event.identifier
-                    # else:
-                    # A tag has been matched
-                    if 'playlist' in nfc_tag:
-                        playlist = nfc_tag['playlist']
-                        if 'shuffle' in nfc_tag:
-                            shuffle = True
-                        else:
-                            shuffle = False
-                        self.playPlaylist(playlist, mp3_dir, shuffle)
-                    if 'mp3' in nfc_tag:
-                        filename = nfc_tag['mp3']
-                        self.playMp3(filename, mp3_dir)
-                    if 'command' in nfc_tag:
-                        command = nfc_tag['command']
-                        logger.info('Running command %s' % command)
-                        os.system(command)
-                    if 'spotify' in nfc_tag:
+                    if isinstance(nfc_tag, SpotifyTag):
                         logger.info("spotify tag")
                         if self.spotify_client.is_activated():
                             logger.info("activated")
@@ -350,13 +328,8 @@ class Base():
                                 self.spotify_client.resume()
                                 #self.startLightshow(self.spotify_client.resume())
                                 continue
-                            try:
-                                position_ms = int(nfc_tag['position_ms'])
-                            except Exception:
-                                position_ms = 0
                             self.stopMp3()
-                            duration_ms = self.spotify_client.spotcast(nfc_tag['spotify'],
-                                                            position_ms)
+                            duration_ms = self.spotify_client.spotcast(nfc_tag.spotify_uri, nfc_tag.start_position_ms)
                             # if duration_ms > 0:
                             #     self.startLightshow(duration_ms)
                             #else:
@@ -365,3 +338,30 @@ class Base():
                         else: 
                             logger.info("not activated")
                             current_tag = previous_tag
+
+                            #https://open.spotify.com/playlist/6VdvufagCnB6BS52MxwPRw?si=9718899179eb413e
+                    
+                    else:
+                    
+                        nfc_tag = nfc_tag.definition
+
+                        logging.info("doing old: %s", nfc_tag)
+                        # if current_tag == None:
+                        #     previous_tag = tag_event.identifier
+                        # else:
+                        # A tag has been matched
+                        if 'playlist' in nfc_tag:
+                            playlist = nfc_tag['playlist']
+                            if 'shuffle' in nfc_tag:
+                                shuffle = True
+                            else:
+                                shuffle = False
+                            self.playPlaylist(playlist, mp3_dir, shuffle)
+                        if 'mp3' in nfc_tag:
+                            filename = nfc_tag['mp3']
+                            self.playMp3(filename, mp3_dir)
+                        if 'command' in nfc_tag:
+                            command = nfc_tag['command']
+                            logger.info('Running command %s' % command)
+                            os.system(command)
+                    
