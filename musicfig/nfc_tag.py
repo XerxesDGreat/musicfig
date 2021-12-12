@@ -36,7 +36,7 @@ class NFCTag():
 
     def _verify_attributes(self):
         for required_attribute in self._get_required_attributes():
-            if required_attribute not in attributes:
+            if required_attribute not in self.attributes:
                 raise KeyError("missing required key '%s'" % required_attribute)
     
     def _get_required_attributes(self):
