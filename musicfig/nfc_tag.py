@@ -146,6 +146,9 @@ class TwinklyTag(NFCTag):
             logger.warning("Requested pattern %s does not exist at %s", self.pattern, pattern_file)
             return None
         return pattern_file
+
+    def _get_delay_between_frames(self):
+        return int(1000 / self.fps)
     
     def on_add(self):
         """
@@ -175,7 +178,7 @@ class TwinklyTag(NFCTag):
             file_size = os.path.getsize(pattern_file)
             num_frames = int(file_size / bytes_per_frame)
 
-        r = ctrl.set_led_movie_config(self.fps, num_frames, num_leds)
+        r = ctrl.set_led_movie_config(self._get_delay_between_frames(), num_frames, num_leds)
         r = ctrl.set_mode("movie")
 
 
