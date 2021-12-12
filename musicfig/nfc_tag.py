@@ -119,6 +119,11 @@ class TwinklyTag(NFCTag):
         a = current_app.config.get("TWINKLY_PATTERN_DIR")
         logger.info(a)
         self.pattern = self.attributes["pattern"]
+        try:
+            self.frame_per_second = int(self.attributes.get("fps", 30))
+        except ValueError as e:
+            logger.warning("bad value in 'fps' attribute on '%s': [%s]; number expected", self.pattern, self.attributes.get("fps"))
+
 
     def _get_control_interface(self):
         if TwinklyTag.control_interface is not None:
@@ -168,7 +173,7 @@ class TwinklyTag(NFCTag):
             file_size = os.path.getsize(pattern_file)
             num_frames = int(file_size / bytes_per_frame)
 
-        r = ctrl.set_led_movie_config(40, num_frames, num_leds)
+        r = ctrl.set_led_movie_config(self.frames_per_second, num_frames, num_leds)
         r = ctrl.set_mode("movie")
 
 
