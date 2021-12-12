@@ -26,6 +26,7 @@ def tag_create_form():
 
 @web.route("/tags/create", methods=["POST"])
 def create_tag():
+    logger.info(request.form)
     # might be better to do an API endpoint
     tag_id = request.form.get("id")
     if tag_id is None:
