@@ -109,10 +109,8 @@ def init_app():
 
     return app
 
-import signal
-def on_kill(signal_number, frame):
-    logger.info("signal number: %s, frame: %s", signal_number, frame)
+import atexit
+def on_kill():
+    logger.info("dying")
     #self.change_pad_color(0, colors.OFF)
-signal.signal(signal.SIGKILL, on_kill)
-signal.signal(signal.SIGTERM, on_kill)
-signal.signal(signal.SIGABRT, on_kill)
+atexit.register(on_kill)
