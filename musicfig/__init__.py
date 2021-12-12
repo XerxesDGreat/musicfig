@@ -108,3 +108,11 @@ def init_app():
             logger.info('To activate Spotify visit: %s' % app.config['REDIRECT_URI'].replace('callback',''))
 
     return app
+
+import signal
+def on_kill(signal_number, frame):
+    logger.info("signal number: %s, frame: %s", signal_number, frame)
+    #self.change_pad_color(0, colors.OFF)
+signal.signal(signal.SIGKILL, on_kill)
+signal.signal(signal.SIGTERM, on_kill)
+signal.signal(signal.SIGABRT, on_kill)

@@ -46,6 +46,7 @@ class Dimensions():
            self.dev = self.init_usb()
            # I don't like this here, but I'm putting it here anyway
            def on_kill(signal_number, frame):
+               logger.info("signal number: %s, frame: %s", signal_number, frame)
                self.change_pad_color(0, colors.OFF)
            signal.signal(signal.SIGKILL, on_kill)
            signal.signal(signal.SIGTERM, on_kill)
