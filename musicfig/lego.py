@@ -255,7 +255,7 @@ class Base():
         current_tag = None
         previous_tag = None
         mp3state = None
-        nfc = NFCTagManager.get_instance(current_app)
+        nfc = NFCTagManager.get_instance()
         self.base = Dimensions()
         logger.info("Lego Dimensions base activated.")
         self.initMp3()

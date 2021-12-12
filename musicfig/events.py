@@ -7,7 +7,7 @@ from flask_socketio import Namespace, emit
 
 logger = logging.getLogger(__name__)
 
-nfc_tag_manager = NFCTagManager.get_instance(current_app)
+nfc_tag_manager = NFCTagManager.get_instance()
 
 class NFCTagHandler(Namespace):
     def on_connect(self):
