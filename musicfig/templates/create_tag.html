@@ -16,9 +16,9 @@
                 <input type="text"
                         class="form-control"
                         id="id"
-                        name="id"
+                        name="tag_id"
                         aria-describedby="idHelp"
-                        {% if tag_id %}disabled placeholder="{{ tag_id }}"{% endif %}>
+                        {% if tag_id %}disabled placeholder="{{ tag_id }}" value="{{ tag_id }}"{% endif %}>
                 <div id="idHelp" class="form-text">Unique identifier for the NFC Tag</div>
             </div>
             <div class="mb-3">
@@ -31,16 +31,16 @@
                 <input type="text" class="form-control" id="description" name="description">
             </div>
             <div class="mb-3">
-                <label for="tagType" class="form-label">Type</label>
-                <select id="tagType" class="form-select" aria-describedby="typeHelp" name="tagType">
+                <label for="tag_type" class="form-label">Type</label>
+                <select id="tag_type" class="form-select" aria-describedby="typeHelp" name="tag_type">
                     <option value="slack">Slack</option>
                     <option value="twinkly">Twinkly</option>
                     <option value="webhook">Webhook</option>
                 </select>
             </div>
             <div class="mb-3">
-                <label for="tagAttributes" class="form-label">Configuration data</label>
-                <textarea class="form-control" id="tagAttributes" rows=6 name="tagAttributes"></textarea>
+                <label for="tag_attributes" class="form-label">Configuration data</label>
+                <textarea class="form-control" id="tag_attributes" rows=6 name="tag_attributes"></textarea>
             </div>
             <button type="submit" class="btn btn-primary" onclick="this.form.submit(); this.disabled=true; this.value='Sending...'">Submit</button>
         </form>

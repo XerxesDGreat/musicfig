@@ -28,17 +28,17 @@ def tag_create_form():
 def create_tag():
     logger.info(request.form)
     # might be better to do an API endpoint
-    tag_id = request.form.get("id")
+    tag_id = request.form.get("tag_id")
     if tag_id is None:
         logger.error("id was blank")
         return redirect(url_for("web.tag_create_form"))
     name = request.form.get("name")
     description = request.form.get("description")
-    tag_type = request.form.get("tagType")
+    tag_type = request.form.get("tag_type")
     if tag_type is None:
         logger.error("tag_type was blank")
         return redirect(url_for("web.tag_create_form"))
-    attributes = request.form.get("tagAttributes")
+    attributes = request.form.get("tag_attributes")
     if attributes is not None:
         try:
             json.loads(attributes)
