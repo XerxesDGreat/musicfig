@@ -17,8 +17,9 @@ logger = logging.getLogger(__name__)
 @web.route("/tags", methods=["GET"])
 def tag_list():
     created_tag_id = session.get("created_tag_id")
-
     return render_template("tags.html", nfc_tags=NFCTagStore.get_all_nfc_tags(), created_tag_id=created_tag_id)
+
+# maybe creating a new one could just be visually represented as adding a new row to the table
 
 @web.route("/tags/create", methods=["GET"])
 def tag_create_form():
