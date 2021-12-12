@@ -51,7 +51,7 @@ class UnknownTag(NFCTag):
         # should _probably_ use a logger which is associated with the
         # app, but this is fine for now. Maybe
         logger.info('Discovered new tag: %s' % self.identifier)
-        socketio.emit('new_tag', {"id": self.identifier})
+        socketio.emit("new_tag", {"tag_id": self.identifier})
 
     def get_pad_color(self):
         return colors.RED
