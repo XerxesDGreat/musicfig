@@ -7,7 +7,8 @@ from flask import \
     redirect, \
     render_template, \
     request, \
-    session
+    session, \
+    url_for
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,11 @@ def tag_list():
     return render_template("tags.html", nfc_tags=NFCTagStore.get_all_nfc_tags())
 
 @web.route("/tags/create", methods=["GET"])
-def tag_create():
+def tag_create_form():
     new_tag_id = request.args.get("tag_id")
     return render_template("create_tag.html", tag_id=new_tag_id)
+
+@web.route("/tags/create", methods=["POST"])
+def create_tag():
+    logger.info(request.args)
+    return redirect(url_for("web.tag_list"))

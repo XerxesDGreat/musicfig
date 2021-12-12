@@ -10,7 +10,7 @@
 <body>
     <div style="margin: 10px 20px">
         <h1>New NFC Tag</h1>
-        <form>
+        <form method="POST" action="{{ url_for('web.create_tag') }}">
             <div class="mb-3">
             <label for="id" class="form-label">Id</label>
             <input type="text"
@@ -41,7 +41,7 @@
                 <label for="tagAttributes" class="form-label">Configuration data</label>
                 <textarea class="form-control" id="tagAttributes" rows=6></textarea>
             </div>
-            <button type="submit" class="btn btn-primary">Submit</button>
+            <button type="submit" class="btn btn-primary" onclick="this.form.submit(); this.disabled=true; this.value='Sending...'">Submit</button>
         </form>
     </div>
 </body>
