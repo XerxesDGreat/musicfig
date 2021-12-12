@@ -111,6 +111,7 @@ class SlackTag(NFCTag, WebhookMixin):
 class TwinklyTag(NFCTag):
     control_interface = None
     required_attributes = ["pattern"]
+    DEFAULT_FPS = 30
     
     def _init_attributes(self):
         super()._init_attributes()
@@ -119,8 +120,9 @@ class TwinklyTag(NFCTag):
         a = current_app.config.get("TWINKLY_PATTERN_DIR")
         logger.info(a)
         self.pattern = self.attributes["pattern"]
+        self.fps = TwinklyTag.DEFAULT_FPS
         try:
-            self.frame_per_second = int(self.attributes.get("fps", 30))
+            self.fps = int(self.attributes.get("fps", TwinklyTag.DEFAULT_FPS))
         except ValueError as e:
             logger.warning("bad value in 'fps' attribute on '%s': [%s]; number expected", self.pattern, self.attributes.get("fps"))
 
@@ -173,7 +175,7 @@ class TwinklyTag(NFCTag):
             file_size = os.path.getsize(pattern_file)
             num_frames = int(file_size / bytes_per_frame)
 
-        r = ctrl.set_led_movie_config(self.frames_per_second, num_frames, num_leds)
+        r = ctrl.set_led_movie_config(self.fps, num_frames, num_leds)
         r = ctrl.set_mode("movie")
 
 
