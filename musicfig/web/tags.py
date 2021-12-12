@@ -16,8 +16,9 @@ logger = logging.getLogger(__name__)
 
 @web.route("/tags", methods=["GET"])
 def tag_list():
-    logger.info("listing tags")
-    return render_template("tags.html", nfc_tags=NFCTagStore.get_all_nfc_tags())
+    created_tag_id = session.get("created_tag_id")
+
+    return render_template("tags.html", nfc_tags=NFCTagStore.get_all_nfc_tags(), created_tag_id=created_tag_id)
 
 @web.route("/tags/create", methods=["GET"])
 def tag_create_form():
@@ -26,6 +27,7 @@ def tag_create_form():
 
 @web.route("/tags/create", methods=["POST"])
 def create_tag():
+    # upon creation, make sure we have the requisite attributes; otherwise will crash later
     logger.info(request.form)
     # might be better to do an API endpoint
     tag_id = request.form.get("tag_id")
@@ -48,4 +50,5 @@ def create_tag():
     logger.info("%s, %s, %s, %s, %s", tag_id, name, description, tag_type, attributes)
 
     NFCTagManager.get_instance().create_nfc_tag(tag_id, tag_type, name=name, description=description, attributes=attributes)
+    session["created_tag_id"] = tag_id
     return redirect(url_for("web.tag_list"))
