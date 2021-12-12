@@ -41,7 +41,7 @@
         });
 
         socket.on("new_tag", function(event, ...args) {
-            t("Found new tag! Click here to register it", "{{ url_for('tag_create') }}", true);
+            t("Found new tag! Click here to register it", "{{ url_for('web.tag_create') }}", true);
         });
     </script>
 </head>
