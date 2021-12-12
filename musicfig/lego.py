@@ -293,6 +293,10 @@ class Base():
                     self.pauseMp3()
                     if self.spotify_client.is_activated():
                         self.spotify_client.pause()
+                elif isinstance(current_tag, SpotifyTag) and tag_event.identifier == current_tag.identifier:
+                    self.pauseMp3()
+                    if self.spotify_client.is_activated():
+                        self.spotify_client.pause()
             else:
                 self.base.change_pad_color(pad=tag_event.pad_num, colour=colors.BLUE)
 
