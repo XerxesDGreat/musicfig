@@ -108,9 +108,3 @@ def init_app():
             logger.info('To activate Spotify visit: %s' % app.config['REDIRECT_URI'].replace('callback',''))
 
     return app
-
-import atexit
-def on_kill():
-    logger.info("dying")
-    #self.change_pad_color(0, colors.OFF)
-atexit.register(on_kill)
