@@ -13,6 +13,7 @@ import glob
 import logging
 import os
 import random
+import signal
 import threading
 import time
 import usb.core
@@ -43,6 +44,11 @@ class Dimensions():
     def __init__(self):
         try:
            self.dev = self.init_usb()
+           # I don't like this here, but I'm putting it here anyway
+           def on_kill(signal_number, frame):
+               self.change_pad_color(0, colors.OFF)
+           signal.signal(signal.SIGKILL, on_kill)
+           signal.signal(signal.SIGTERM, on_kill)
         except Exception as e:
             logging.info("failed initialization: %s", e)
             return
