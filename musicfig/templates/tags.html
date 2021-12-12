@@ -40,8 +40,8 @@
             location.reload();
         });
 
-        socket.on("new_tag", function(payload) {
-            t("Found new tag! Click here to register it", "{{ url_for('web.tag_create') }}?tag_id={{payload.tag_id}}", true);
+        socket.on("new_tag", function(event, ...args) {
+            t("Found new tag! Click here to register it", "{{ url_for('web.tag_create') }}?tag_id=" + event.tag_id, true);
         });
     </script>
 </head>
