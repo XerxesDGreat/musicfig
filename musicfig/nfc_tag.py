@@ -323,9 +323,17 @@ class NFCTagManager():
         socketio.emit("tag_deleted", {"tag_id": id})
     
 
-    def create_nfc_tag(self, id, tag_type, name=None, description=None, attr=None):
+    def create_nfc_tag(self, id, tag_type, name=None, description=None, attributes=None):
         if id is None or tag_type is None:
             raise ArgumentError("must include both id and tag_type")
+        if tag_type not in TAG_REGISTRY_MAP:
+            raise ArgumentError("tag_type was %s, must be one of the following: [%s]",
+                                tag_type, "],[".join(TAG_REGISTRY_MAP.keys()))
+        if isinstance(attributes, dict):
+            attributes = json.dumps(dict)
+
+        NFCTagStore.create_nfc_tag(id, tag_type, name, description, attributes)
+
         
 
         

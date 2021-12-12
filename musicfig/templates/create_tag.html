@@ -12,34 +12,35 @@
         <h1>New NFC Tag</h1>
         <form method="POST" action="{{ url_for('web.create_tag') }}">
             <div class="mb-3">
-            <label for="id" class="form-label">Id</label>
-            <input type="text"
-                    class="form-control"
-                    id="id"
-                    aria-describedby="idHelp"
-                    {% if tag_id %}disabled placeholder="{{ tag_id }}"{% endif %}>
-            <div id="idHelp" class="form-text">Unique identifier for the NFC Tag</div>
+                <label for="id" class="form-label">Id</label>
+                <input type="text"
+                        class="form-control"
+                        id="id"
+                        name="id"
+                        aria-describedby="idHelp"
+                        {% if tag_id %}disabled placeholder="{{ tag_id }}"{% endif %}>
+                <div id="idHelp" class="form-text">Unique identifier for the NFC Tag</div>
             </div>
             <div class="mb-3">
-            <label for="name" class="form-label">Name</label>
-            <input aria-describedby="nameHelp" type="text" class="form-control" id="name">
-            <div id="nameHelp" class="form-text">Something to help you remember this tag. It's not unique, so you can name them all "bob" if you want</div>
+                <label for="name" class="form-label">Name</label>
+                <input aria-describedby="nameHelp" type="text" class="form-control" id="name" name="name">
+                <div id="nameHelp" class="form-text">Something to help you remember this tag. It's not unique, so you can name them all "bob" if you want</div>
             </div>
             <div class="mb-3">
-            <label for="description" class="form-label">Description</label>
-            <input type="text" class="form-control" id="description">
+                <label for="description" class="form-label">Description</label>
+                <input type="text" class="form-control" id="description" name="description">
             </div>
             <div class="mb-3">
                 <label for="tagType" class="form-label">Type</label>
-                <select id="disabledSelect" class="form-select" aria-describedby="typeHelp">
-                <option value="slack">Slack</option>
-                <option value="twinkly">Twinkly</option>
-                <option value="webhook">Webhook</option>
+                <select id="tagType" class="form-select" aria-describedby="typeHelp" name="tagType">
+                    <option value="slack">Slack</option>
+                    <option value="twinkly">Twinkly</option>
+                    <option value="webhook">Webhook</option>
                 </select>
             </div>
             <div class="mb-3">
                 <label for="tagAttributes" class="form-label">Configuration data</label>
-                <textarea class="form-control" id="tagAttributes" rows=6></textarea>
+                <textarea class="form-control" id="tagAttributes" rows=6 name="tagAttributes"></textarea>
             </div>
             <button type="submit" class="btn btn-primary" onclick="this.form.submit(); this.disabled=true; this.value='Sending...'">Submit</button>
         </form>
