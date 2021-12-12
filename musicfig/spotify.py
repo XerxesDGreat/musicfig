@@ -113,7 +113,7 @@ class SpotifyClient:
         image_url = track.album.images[0].url # get the first image from the list of potentials
         name = unidecode.unidecode(track.name)
         duration_ms = track.duration_ms
-        artist = ",".join([unidecode.unidecode(a) for a in track.artists])
+        artist = ",".join([unidecode.unidecode(a.name) for a in track.artists])
         song = Song(id=track.id, image_url=image_url, artist=artist, name=name, duration_ms=duration_ms)
         db.session.add(song)
         db.session.commit()
