@@ -295,7 +295,7 @@ class NFCTagManager():
         return nfc_tag_class(id,
                              name=nfc_tag_model.name,
                              description=nfc_tag_model.description,
-                             attributes=nfc_tag_model.attr,
+                             attributes=nfc_tag_model.get_attr_object(),
                              app_context=self.app_context
                              )
 
