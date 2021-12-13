@@ -352,7 +352,7 @@ class NFCTagManager():
         # perhaps do a list of types or something?
 
         nfc_tag_class = TAG_REGISTRY_MAP.get(nfc_tag_model.type, LegacyTag)
-        return nfc_tag_class(id,
+        return nfc_tag_class(nfc_tag_model.id,
                              name=nfc_tag_model.name,
                              description=nfc_tag_model.description,
                              attributes=nfc_tag_model.get_attr_object()
