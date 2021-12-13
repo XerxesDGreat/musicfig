@@ -208,15 +208,24 @@ class TwinklyTag(NFCTag):
             logger.error("failed network operation: %s", str(e))
             response = None
         
+        error = None
+        addl_info = {}
         if response is None:
-            raise NFCTagOperationError("Twinkly API call response is empty")
+            error = "Twinkly API call response is empty"
+        elif response.get("code") != 1000:
+            error = "Code returned was not 1000"
+            addl_info["code"] = response.get("code")
+            addl_info["response"] = response
+        else:
+            for k in verify_keys:
+                if response.get(k) is None:
+                    error = "Twinkly API call response did not contain required key"
+                    addl_info["key"] = k
+                    addl_info["response"] = response
         
-        if response.get("code") != 1000:
-            raise NFCTagOperationError("Code returned [%s] was not 1000; response object: [%s]" % (response.get("code"), response))
-        
-        for k in verify_keys:
-            if response.get(k) is None:
-                raise NFCTagOperationError("Twinkly API call response did not contain a required key [%s]" % k)
+        if error is not None:
+            msg = error + "; extra information: " + ", ".join(["%s=%s" % (k, v) for k, v in addl_info.items()])
+            raise NFCTagOperationError(msg)
 
         end = time.time()
         logger.info("operation %s took %s ms", operation, int((end - start) * 1000))
