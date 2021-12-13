@@ -181,7 +181,7 @@ class TwinklyTag(NFCTag):
         bytes_per_frame = num_leds * 3
 
         # do the tree
-        self._try_network_operation("set_mode", "off")
+        self._try_network_operation("set_mode", call_args=["off"])
         with open(pattern_file, 'rb') as f:
             response = self._try_network_operation("set_led_movie_full", f)
 
@@ -193,19 +193,17 @@ class TwinklyTag(NFCTag):
             file_size = os.path.getsize(pattern_file)
             num_frames = int(file_size / bytes_per_frame)
 
-        self._try_network_operation("set_led_movie_config",
-                                       self._get_delay_between_frames(),
-                                       num_frames,
-                                       num_leds)
-        self._try_network_operation("set_mode", "movie")
+        call_args = [self._get_delay_between_frames(), num_frames, num_leds]
+        self._try_network_operation("set_led_movie_config", call_args=call_args)
+        self._try_network_operation("set_mode", call_args=["movie"])
     
 
-    def _try_network_operation(self, operation, verify_keys=[], *args):
+    def _try_network_operation(self, operation, call_args=[], verify_keys=[]):
         start = time.time()
         control_interface = self._get_control_interface()
         func = getattr(control_interface, operation)
         try:
-            response = func(*args)
+            response = func(*call_args)
         except Exception as e:
             logger.error("failed network operation: %s", str(e))
             response = None
