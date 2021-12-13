@@ -208,8 +208,11 @@ class TwinklyTag(NFCTag):
             logger.error("failed network operation: %s", str(e))
             response = None
         
-        if response is None or response.get("code") != 1000:
-            raise NFCTagOperationError("Twinkly API call response was unusable")
+        if response is None:
+            raise NFCTagOperationError("Twinkly API call response is empty")
+        
+        if response.get("code") != 1000:
+            raise NFCTagOperationError("Code returned [%s] was not 1000; response object: [%s]" % (response.get("code"), response))
         
         for k in verify_keys:
             if response.get(k) is None:
