@@ -323,7 +323,7 @@ class Base():
                         nfc_tag.on_add()
                     except NFCTagOperationError as e:
                         logger.exception(e)
-                        self.base.flash_pad_color(pad=tag_event.pad_num, on_length=20, off_length=50, pulse_count=5, colour=colors.RED)
+                        self.base.flash_pad_color(pad=tag_event.pad_num, on_length=8, off_length=8, pulse_count=4, colour=colors.RED)
                     #self.base.fade(tag_event.pad_num, nfc_tag.get_pad_color())
                     # Unknown tag. Display UID.
                 
