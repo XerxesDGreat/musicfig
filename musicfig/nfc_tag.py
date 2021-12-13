@@ -215,7 +215,7 @@ class SpotifyTag(NFCTag):
         self.spotify_uri = self.attributes["spotify_uri"]
         try:
             self.start_position_ms = int(self.attributes.get("start_position_ms"))
-        except (TypeError, ValueError) as e:
+        except ValueError as e:
             logging.warning("invalid value [%s] found in start position config")
             self.start_position_ms = 0
 
