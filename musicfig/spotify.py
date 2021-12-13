@@ -17,21 +17,18 @@ SpotifyClientConfig = namedtuple("SpotifyClientConfig", ["client_id", "client_se
 
 class SpotifyClient:
 
-    _client = None
-
-    @classmethod
-    def get_client(cls, client_config=None):
-        if cls._client is None:
-            cls._client = SpotifyClient(client_config)
-        return cls._client
-
-    def __init__(self, client_config=None):
+    def __init__(self, app):
         self.current_user_id = None
         self.user_token_map = {"local": None} # `local` is apparently a special user with no token; keep it
-        self.config = client_config
         self.credentials = None
         self.client = None
-        self._init_client()
+        if app is not None:
+            self.init_app(app)
+    
+    def init_app(self, app):
+        self.config = SpotifyClientConfig(app.config.get("CLIENT_ID"), app.config.get("CLIENT_SECRET"),
+            app.config.get("REDIRECT_URI"))
+        
 
     ###############################
     # client configuration operations
