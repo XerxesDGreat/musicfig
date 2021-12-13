@@ -6,7 +6,6 @@ from flask import Flask, render_template
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 from logging.config import dictConfig
-from .spotify import SpotifyClient, SpotifyClientConfig
 from threading import Thread
 
 dictConfig({
@@ -60,7 +59,6 @@ app_version = "heavy development"
 db = SQLAlchemy()
 socketio = SocketIO()
 lego_thread = Thread()
-spotify = SpotifyClient()
 
 from . import models
 #from . import events
@@ -73,7 +71,6 @@ def init_app():
 
     db.init_app(app)
     socketio.init_app(app)
-    spotify.init_app(app)
 
     @app.errorhandler(404)
     def not_found(error):

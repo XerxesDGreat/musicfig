@@ -1,19 +1,21 @@
 #!/usr/bin/env python
 
-from . import socketio, spotify
+from . import socketio, mp3player, spotify
+from .spotify import SpotifyClientConfig, SpotifyClient
 from collections import namedtuple
 from flask import current_app
-from .mp3player import Player as MP3Player
-from musicfig import colors
+from musicfig import colors, webhook
 from mutagen.mp3 import MP3
-from musicfig.nfc_tag import NFCTagManager, NFCTag, NFCTagOperationError, SpotifyTag
+from musicfig.nfc_tag import LegacyTag, NFCTagManager, NFCTag, NFCTagOperationError, SpotifyTag
 
 import binascii
 import glob
 import logging
 import os
 import random
+import signal
 import threading
+import time
 import usb.core
 import usb.util
 
@@ -138,7 +140,7 @@ class Base():
         spotify_client_config = SpotifyClientConfig(config.get("CLIENT_ID"),
             config.get("CLIENT_SECRET"), config.get("REDIRECT_URI"))
 
-        spotify = SpotifyClient.get_client(client_config=spotify_client_config)
+        self.spotify_client = SpotifyClient.get_client(client_config=spotify_client_config)
 
     # def randomLightshow(self,duration = 60):
     #     logger.info("Lightshow started for %s seconds." % duration)
@@ -159,7 +161,7 @@ class Base():
     #         self.lightshowThread.start()
 
     def initMp3(self):
-        self.p = MP3Player()
+        self.p = mp3player.Player()
         def monitor():
             global mp3state
             global mp3elapsed
@@ -213,7 +215,7 @@ class Base():
     def playMp3(self, filename, mp3_dir):
         global t
         global mp3state
-        spotify.pause()
+        self.spotify_client.pause()
         if previous_tag == current_tag and 'PAUSED' in ("%s" % mp3state):
             # Resume
             logger.info("Resuming mp3 track.")
@@ -230,7 +232,7 @@ class Base():
     def playPlaylist(self, playlist_filename, mp3_dir, shuffle=False):
         global mp3state
         list_mp3_to_play = []
-        spotify.pause()
+        self.spotify_client.pause()
 
         mp3list = mp3_dir +'/'+ playlist_filename + '/*.mp3'
         ##logger.debug(mp3list)
@@ -289,12 +291,12 @@ class Base():
                     # except Exception:
                     #     pass
                     self.pauseMp3()
-                    if spotify.is_activated():
-                        spotify.pause()
+                    if self.spotify_client.is_activated():
+                        self.spotify_client.pause()
                 elif isinstance(current_tag, SpotifyTag) and tag_event.identifier == current_tag.identifier:
                     self.pauseMp3()
-                    if spotify.is_activated():
-                        spotify.pause()
+                    if self.spotify_client.is_activated():
+                        self.spotify_client.pause()
             else:
                 self.base.change_pad_color(pad=tag_event.pad_num, colour=colors.BLUE)
 
@@ -313,7 +315,7 @@ class Base():
                 logging.info(nfc_tag)
 
                 previous_tag = current_tag
-                current_tag = nfc_tag
+                current_tag = nfc_tag.identifier
 
                 if nfc_tag.should_use_class_based_execution():
                     logging.info("doing new")
@@ -328,14 +330,14 @@ class Base():
                 else:
                     if isinstance(nfc_tag, SpotifyTag):
                         logger.info("spotify tag")
-                        if spotify.is_activated():
+                        if self.spotify_client.is_activated():
                             logger.info("activated")
                             if current_tag == previous_tag:
-                                spotify.resume()
-                                #self.startLightshow(spotify.resume())
+                                self.spotify_client.resume()
+                                #self.startLightshow(self.spotify_client.resume())
                                 continue
                             self.stopMp3()
-                            duration_ms = spotify.spotcast(nfc_tag.spotify_uri, nfc_tag.start_position_ms)
+                            duration_ms = self.spotify_client.spotcast(nfc_tag.spotify_uri, nfc_tag.start_position_ms)
                             # if duration_ms > 0:
                             #     self.startLightshow(duration_ms)
                             #else:
