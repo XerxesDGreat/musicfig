@@ -214,7 +214,7 @@ class SpotifyTag(NFCTag):
         super()._init_attributes()
         self.spotify_uri = self.attributes["spotify_uri"]
         try:
-            self.start_position_ms = int(self.attributes.get("start_position_ms"))
+            self.start_position_ms = int(self.attributes.get("start_position_ms", 0))
         except ValueError as e:
             logging.warning("invalid value [%s] found in start position config")
             self.start_position_ms = 0
