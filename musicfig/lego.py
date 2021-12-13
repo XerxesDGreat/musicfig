@@ -6,7 +6,7 @@ from collections import namedtuple
 from flask import current_app
 from musicfig import colors, webhook
 from mutagen.mp3 import MP3
-from musicfig.nfc_tag import LegacyTag, NFCTagManager, NFCTag, SpotifyTag
+from musicfig.nfc_tag import LegacyTag, NFCTagManager, NFCTag, NFCTagOperationError, SpotifyTag
 
 import binascii
 import glob
@@ -319,7 +319,11 @@ class Base():
 
                 if nfc_tag.should_use_class_based_execution():
                     logging.info("doing new")
-                    nfc_tag.on_add()
+                    try:
+                        nfc_tag.on_add()
+                    except NFCTagOperationError as e:
+                        logger.exception(e)
+                        self.base.flash_pad_color(pad=tag_event.pad_num, on_length=20, off_length=20, pulse_count=2, colour=colors.RED)
                     #self.base.fade(tag_event.pad_num, nfc_tag.get_pad_color())
                     # Unknown tag. Display UID.
                 

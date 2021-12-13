@@ -4,6 +4,7 @@ from ctypes import ArgumentError
 import json
 import logging
 import os
+import random
 import time
 import xled
 import yaml
@@ -21,6 +22,9 @@ logger = logging.getLogger(__name__)
 
 # all uses of current_app in here are for config; try just passing those
 # config values, mayhap?
+
+class NFCTagOperationError(BaseException):
+    pass
 
 class NFCTag():
     def __init__(self, identifier, name=None, description=None, attributes={}, **kwargs):
@@ -163,22 +167,23 @@ class TwinklyTag(NFCTag):
         if pattern_file is None:
             return
 
-        ctrl = self._get_control_interface()
+        # testing
+        if random.randint(0, 4) == 2:
+            raise NFCTagOperationError("just testing brah, it's only a prank")
 
         # we'll need these for calculations
-        num_leds = ctrl.get_device_info()['number_of_led']
+        try:
+            num_leds = int(self._try_network_operation('get_device_info', verify_keys=["number_of_led"])["number_of_led"])
+        except ValueError as e:
+            logger.exception("bad value for number_of_led")
+            raise NFCTagOperationError("bad value for number_of_led")
+            
         bytes_per_frame = num_leds * 3
 
         # do the tree
-        if self._try_network_operation("set_mode", "off") is None:
-            # failed operation; return
-            return
+        self._try_network_operation("set_mode", "off")
         with open(pattern_file, 'rb') as f:
             response = self._try_network_operation("set_led_movie_full", f)
-            
-            if response is None:
-                # failed operation; return
-                return
 
             # also need the size of the file
             num_frames = response.data.get("frames_number")
@@ -194,15 +199,24 @@ class TwinklyTag(NFCTag):
                                        num_leds)
         self._try_network_operation("set_mode", "movie")
     
-    def _try_network_operation(self, operation, *args):
+
+    def _try_network_operation(self, operation, verify_keys=[], *args):
         start = time.time()
         control_interface = self._get_control_interface()
         func = getattr(control_interface, operation)
         try:
             response = func(*args)
         except Exception as e:
-            logger.exception("failed network operation: %s", str(e))
+            logger.error("failed network operation: %s", str(e))
             response = None
+        
+        if response is None or response.get("code") != 1000:
+            raise NFCTagOperationError("Twinkly API call response was unusable")
+        
+        for k in verify_keys:
+            if response.get(k) is None:
+                raise NFCTagOperationError("Twinkly API call response did not contain a required key [%s]" % k)
+
         end = time.time()
         logger.info("operation %s took %s ms", operation, int((end - start) * 1000))
         return response
