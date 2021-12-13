@@ -66,7 +66,7 @@
         </thead>
         <tbody>
             {% for nfc_tag in nfc_tags %}
-            <tr {% if created_tag_id and created_tag_id is nfc_tag.id %}class="table-info"{% endif %}>
+            <tr {% if ( (created_tag_id) and (created_tag_id == nfc_tag.id) ) %}class="table-info"{% endif %}>
                 <td>
                     <button onclick="doDelete('{{ nfc_tag.id }}')"><i class="fa fa-trash-o"></i></button>
                 </td>
