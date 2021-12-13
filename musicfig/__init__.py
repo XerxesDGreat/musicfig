@@ -6,7 +6,7 @@ from flask import Flask, render_template
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 from logging.config import dictConfig
-from .spotify import SpotifyClient, SpotifyClientConfig
+from .spotify import SpotifyClient
 from threading import Thread
 
 dictConfig({
@@ -60,12 +60,14 @@ app_version = "heavy development"
 db = SQLAlchemy()
 socketio = SocketIO()
 lego_thread = Thread()
-spotify = SpotifyClient()
+
+spotify_client = None
 
 from . import models
-#from . import events
 
 def init_app():
+    global spotify_client
+
     app = Flask(__name__,
                 static_url_path='', 
                 static_folder='templates')
@@ -73,7 +75,7 @@ def init_app():
 
     db.init_app(app)
     socketio.init_app(app)
-    spotify.init_app(app)
+    spotify_client.init_app(app)
 
     @app.errorhandler(404)
     def not_found(error):
@@ -102,6 +104,9 @@ def init_app():
             lego_thread.start()
 
         connect_lego()
+
+        from .spotify import SpotifyClient
+        spotify_client = SpotifyClient(app)
 
         from .events import NFCTagHandler
         socketio.on_namespace(NFCTagHandler())
