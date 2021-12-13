@@ -183,7 +183,7 @@ class TwinklyTag(NFCTag):
         # do the tree
         self._try_network_operation("set_mode", call_args=["off"])
         with open(pattern_file, 'rb') as f:
-            response = self._try_network_operation("set_led_movie_full", f)
+            response = self._try_network_operation("set_led_movie_full", call_args=[f])
 
             # also need the size of the file
             num_frames = response.data.get("frames_number")
