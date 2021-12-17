@@ -45,8 +45,8 @@ class Dimensions():
         try:
            self.dev = self.init_usb()
         except Exception as e:
-            logging.info("failed initialization: %s", e)
-            return
+            logging.exception("failed initialization: %s", e)
+            raise e
 
     def init_usb(self):
         dev = usb.core.find(idVendor=0x0e6f, idProduct=0x0241)
@@ -118,6 +118,7 @@ class Dimensions():
 
 
 class Base():
+    #perhaps initialize this in such a way that the application gives up
     def __init__(self):
         # self.OFF   = [0,0,0]
         # self.RED   = [100,0,0]
@@ -256,7 +257,12 @@ class Base():
         previous_tag = None
         mp3state = None
         nfc = NFCTagManager.get_instance()
-        self.base = Dimensions()
+        try:
+            self.base = Dimensions()
+        except Exception as e:
+            logger.exception("Unable to initialize Dimensions; aborting")
+            return False
+            
         logger.info("Lego Dimensions base activated.")
         self.initMp3()
         #switch_lights = current_app.config["RUN_LIGHT_SHOW_DEFAULT"]
