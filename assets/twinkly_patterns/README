@@ -1,0 +1,4 @@
+Place binary-format twinkly patterns in this directory.
+
+Easiset way to get these is to MITM the traffic between a Twinkly app and the tree,
+then intercept the payload being sent.

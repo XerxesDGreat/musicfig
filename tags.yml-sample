@@ -1,9 +1,3 @@
-# Base path of mp3 folder
-mp3_dir: /path/to/base/mp3/folder
-
-# Ligthshow switch
-lights: on
-
 # NFC tags have unique identifiers which are assigned "Spotify URI" actions.
 identifier:
     05631b62124:

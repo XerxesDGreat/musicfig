@@ -1,4 +1,6 @@
 flask
+flask_socketio
+flask_sqlalchemy
 nfcpy
 pydub
 pyusb
@@ -8,3 +10,4 @@ requests
 mpg123
 mutagen
 unidecode
+xled==0.7.0

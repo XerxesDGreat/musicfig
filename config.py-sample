@@ -32,3 +32,12 @@ CSRF_SESSION_KEY = os.urandom(12)
 
 # Secret key for signing cookies
 SECRET_KEY = os.urandom(24)
+
+# base resources directory in which to keep various assets
+ASSETS_DIR = os.path.join(BASE_DIR, "assets")
+
+# directory which contains local MP3 lib to be played
+MP3_DIR = os.path.join(ASSETS_DIR, "mp3")
+
+# determines whether or not to run the light show by default
+RUN_LIGHT_SHOW_DEFAULT = True
