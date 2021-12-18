@@ -40,6 +40,10 @@ DimensionsTagEvent = namedtuple("DimensionsTagEvent", ["was_removed", "pad_num",
 
 
 class Dimensions():
+    """
+    Representation of the LEGO Dimensions USB device. This provides the interface by which
+    commands are sent and NFC tag events are detected.
+    """
 
     def __init__(self):
         try:
@@ -49,6 +53,14 @@ class Dimensions():
             raise e
 
     def init_usb(self):
+        """
+        Initializes the USB connection and prepares the device to receive commands
+
+        Raises the following exceptions:
+        ValueError if the device is not found
+        usb.core.USBError on USB comms-related errors
+        Other various standard exceptions, depending on the case
+        """
         dev = usb.core.find(idVendor=0x0e6f, idProduct=0x0241)
 
         if dev is None:
@@ -67,6 +79,12 @@ class Dimensions():
         return dev
 
     def send_command(self, command):
+        """
+        Converts the given command into a byte stream and sends it to the USB device
+
+        Positional Arguments:
+        command -- a byte array which represents the command to send.
+        """
         checksum = 0
         for word in command:
             checksum = checksum + word
@@ -84,16 +102,72 @@ class Dimensions():
             pass
 
     def change_pad_color(self, pad, colour):
+        """
+        Changes the color of a pad on the device to the provided color
+
+        The allowed values for pad are as follows:
+        0 - all pads
+        1 - left pad
+        2 - right pad
+        3 - circle pad
+
+        Positional arguments:
+        pad -- the pad whose color we should change
+        colour -- the new color, formatted as a tuple of ints like (R, G, B)
+        """
         self.send_command([0x55, 0x06, 0xc0, 0x02, pad, colour[0], 
                           colour[1], colour[2],])
         return
 
     def fade_pad_color(self, pad, pulse_time, pulse_count, colour):
+        """
+        Crossfades the pad from the current color to the provided color
+
+        The allowed values for pad are as follows:
+        0 - all pads
+        1 - left pad
+        2 - right pad
+        3 - circle pad
+
+        Positional arguments:
+        pad -- the pad whose color we should change
+        pulse_time -- 
+        pulse_count --
+        colour --
+        """
         self.send_command([0x55, 0x08, 0xc2, 0x0f, pad, pulse_time, 
                           pulse_count, colour[0], colour[1], colour[2],])
         return
 
     def flash_pad_color(self, pad, on_length, off_length, pulse_count, colour):
+        """
+        Flashes the pad between the current color and the provided color
+
+        The behavior of this is not very intuitive. Using words, this operation
+        will switch between the `colour` and the current color `pulse_count` times,
+        with a duration which alternates between `on_length` and `off_length`. An
+        example is probably easier to follow. Assume the current color is red and
+        this operation is called with the following args:
+        - `on_length` = 5
+        - `off_length` = 10
+        - `pulse_count` = 4
+        - color = blue
+        This would change the pad to blue for 5, then back to red for 10, back to blue for 5,
+        back to red for 10, then it would stay red. Were pulse_count 5, the pad would stay blue
+
+        The allowed values for pad are as follows:
+        0 - all pads
+        1 - left pad
+        2 - right pad
+        3 - circle pad
+
+        Positional arguments:
+        pad -- the pad whose color we should change
+        on_length -- how long to switch to the new color, seemingly in 100s of milliseconds
+        off_lenth -- how long to switch back to the old color, seemingly in 100s of milliseconds
+        pulse_count -- how many times to change colors
+        colour -- the new color in a tuple of ints (R, G, B)
+        """
         self.send_command([0x55, 0x09, 0xc3, 0x03, pad, 
                           on_length, off_length, pulse_count, 
                           colour[0], colour[1], colour[1],])
@@ -275,6 +349,7 @@ class Base():
 
         i = 0
         while True:
+            #time.sleep(1)
             i = i + 1
             if i == 10000:
                 logging.info("loop")
@@ -322,6 +397,10 @@ class Base():
 
                 previous_tag = current_tag
                 current_tag = nfc_tag.identifier
+                if i % 2 == 0:
+                    self.base.flash_pad_color(pad=tag_event.pad_num, on_length=8, off_length=8, pulse_count=5, colour=colors.GREEN)
+                elif i % 2 == 1:
+                    self.base.fade_pad_color(pad=tag_event.pad_num, pulse_time=10, pulse_count=6, colour=colors.PINK)
 
                 if nfc_tag.should_use_class_based_execution():
                     logging.info("doing new")
