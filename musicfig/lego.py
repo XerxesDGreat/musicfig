@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 #         self.nfc_tag_list.pop(identifier)
 
 
-# named tuple allows for less string parsing and guessing what goes where
+""" Representation of a tag addition or tag removal event """
 DimensionsTagEvent = namedtuple("DimensionsTagEvent", ["was_removed", "pad_num", "identifier"])
 
 
@@ -44,6 +44,8 @@ class Dimensions():
     Representation of the LEGO Dimensions USB device. This provides the interface by which
     commands are sent and NFC tag events are detected.
     """
+    VENDOR_ID = 0x0e6f
+    PRODUCT_ID = 0x0241
 
     def __init__(self):
         try:
@@ -61,7 +63,7 @@ class Dimensions():
         usb.core.USBError on USB comms-related errors
         Other various standard exceptions, depending on the case
         """
-        dev = usb.core.find(idVendor=0x0e6f, idProduct=0x0241)
+        dev = usb.core.find(idVendor=Dimensions.VENDOR_ID, idProduct=Dimensions.PRODUCT_ID)
 
         if dev is None:
             logger.error('Lego Dimensions pad not found')
@@ -117,7 +119,6 @@ class Dimensions():
         """
         self.send_command([0x55, 0x06, 0xc0, 0x02, pad, colour[0], 
                           colour[1], colour[2],])
-        return
 
     def fade_pad_color(self, pad, pulse_time, pulse_count, colour):
         """
@@ -131,13 +132,14 @@ class Dimensions():
 
         Positional arguments:
         pad -- the pad whose color we should change
-        pulse_time -- 
-        pulse_count --
-        colour --
+        pulse_time -- how long the color transition should be
+        pulse_count -- how many times to change color; odd will
+                       remain the new color, even numbers will
+                       go back to the original color
+        colour -- the color for transition
         """
         self.send_command([0x55, 0x08, 0xc2, 0x0f, pad, pulse_time, 
                           pulse_count, colour[0], colour[1], colour[2],])
-        return
 
     def flash_pad_color(self, pad, on_length, off_length, pulse_count, colour):
         """
@@ -165,15 +167,22 @@ class Dimensions():
         pad -- the pad whose color we should change
         on_length -- how long to switch to the new color, seemingly in 100s of milliseconds
         off_lenth -- how long to switch back to the old color, seemingly in 100s of milliseconds
-        pulse_count -- how many times to change colors
+        pulse_count -- how many times to change colors; odd numbers will
+                       remain the new color, even numbers will revert to
+                       the original color
         colour -- the new color in a tuple of ints (R, G, B)
         """
         self.send_command([0x55, 0x09, 0xc3, 0x03, pad, 
                           on_length, off_length, pulse_count, 
                           colour[0], colour[1], colour[1],])
-        return
 
     def get_tag_event(self):
+        """
+        Fetches the most recent tag add or remove event
+
+        Returns None if no relevant event exists, or
+        a DimensionsTagEvent if there is a relevant event
+        """
         try:
             inwards_packet = self.dev.read(0x81, 32, timeout = 10)
             bytelist = list(inwards_packet)
@@ -397,10 +406,6 @@ class Base():
 
                 previous_tag = current_tag
                 current_tag = nfc_tag.identifier
-                if i % 2 == 0:
-                    self.base.flash_pad_color(pad=tag_event.pad_num, on_length=8, off_length=8, pulse_count=5, colour=colors.GREEN)
-                elif i % 2 == 1:
-                    self.base.fade_pad_color(pad=tag_event.pad_num, pulse_time=10, pulse_count=6, colour=colors.PINK)
 
                 if nfc_tag.should_use_class_based_execution():
                     logging.info("doing new")
@@ -409,8 +414,6 @@ class Base():
                     except NFCTagOperationError as e:
                         logger.exception(e)
                         self.base.flash_pad_color(pad=tag_event.pad_num, on_length=8, off_length=8, pulse_count=4, colour=colors.RED)
-                    #self.base.fade(tag_event.pad_num, nfc_tag.get_pad_color())
-                    # Unknown tag. Display UID.
                 
                 else:
                     if isinstance(nfc_tag, SpotifyTag):
