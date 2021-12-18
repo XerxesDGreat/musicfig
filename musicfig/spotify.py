@@ -31,11 +31,19 @@ class SpotifyClient:
         self.config = client_config
         self.credentials = None
         self.client = None
-        self._init_client()
+        if client_config is not None:
+            self._init_client()
 
     ###############################
     # client configuration operations
     ###############################
+    def _app_config_to_client_config(self, app_config):
+        return SpotifyClientConfig(app_config.get("CLIENT_ID"), app_config.get("CLIENT_SECRET"), app_config.get("REDIRECT_URI"))
+
+    def init_app(self, app):
+        self.config = self._app_config_to_client_config(app.config)
+        self._init_client()
+
     def _init_client(self):
         self.credentials = tk.Credentials(self.config.client_id, self.config.client_secret, self.config.redirect_uri)
         self.client = tk.Spotify()
@@ -202,3 +210,5 @@ class SpotifyClient:
             return ONE_MINUTE_IN_MS
 
         return song.duration_ms
+
+spotify_client = SpotifyClient()

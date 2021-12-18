@@ -3,20 +3,14 @@ import logging
 #1f6J%jFb$zlP
 
 from . import web
-from ..spotify import SpotifyClientConfig, SpotifyClient
 from flask import \
-    current_app, \
     redirect, \
     render_template, \
     request, \
     session
+from ..spotify import spotify_client
 
 logger = logging.getLogger(__name__)
-
-spotify_client_config = SpotifyClientConfig(current_app.config.get("CLIENT_ID"),
-    current_app.config.get("CLIENT_SECRET"), current_app.config.get("REDIRECT_URI"))
-
-spotify_client = SpotifyClient.get_client(client_config=spotify_client_config)
 
 @web.route("/", methods=["GET"])
 def main():
