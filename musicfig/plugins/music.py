@@ -25,6 +25,11 @@ SpotifyClientConfig = namedtuple("SpotifyClientConfig", ["client_id", "client_se
 # energy to do this at this time, so I'm not going to. Scope has been defined that we will
 # only play Spotify.
 
+# That said, my initial thoughts are we should have a MusicManager which does the centralized
+# playback/pause/what's playing now control, and the strategies used to play music are swapped
+# in and out based on the tags. That's why this module is called "music" and not "spotify", even
+# though we're only supporting Spotify at the moment
+
 
 class SpotifyTag(NFCTag):
     required_attributes = ["spotify_uri"]
