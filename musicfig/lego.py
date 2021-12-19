@@ -11,7 +11,6 @@ from musicfig.nfc_tag import NFCTag, NFCTagManager, NFCTagOperationError
 from pubsub import pub
 
 
-
 import binascii
 import glob
 import logging
@@ -105,6 +104,11 @@ class Dimensions(BaseDimensions):
     VENDOR_ID = 0x0e6f
     PRODUCT_ID = 0x0241
     DEFAULT_COLOR = colors.DIM
+
+    LEFT_PAD = 2
+    RIGHT_PAD = 3
+    CIRCLE_PAD = 1
+    ALL_PAD = 0
 
     def __init__(self, app=None):
         super().__init__(app)
@@ -317,7 +321,7 @@ class DimensionsLoop(threading.Thread):
 
         Responsible for fetching events from the pad and handling them accordingly
         """
-        self.dimensions.change_pad_color(0, self.get_idle_color())
+        self.dimensions.change_pad_color(Dimensions.ALL_PAD, self.get_idle_color())
         with self.app.app_context():
             while self.do_loop:
                 if random.randint(1, 10000) == 0:

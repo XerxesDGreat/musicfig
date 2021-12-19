@@ -4,6 +4,7 @@ import logging
 import tekore as tk
 import unidecode
 
+from ..lego import Dimensions
 from ..models import db, Song
 from ..nfc_tag import NFCTag, register_tag_type
 from collections import namedtuple
@@ -288,7 +289,7 @@ class SpotifyClient:
         if not isinstance(nfc_tag, SpotifyTag):
             return
 
-        if tag_event.pad_num != 3:
+        if tag_event.pad_num != Dimensions.CIRCLE_PAD:
             pub.sendMessage("handler_response.add.error", tag_event=tag_event)
         else:
             self.start_playback_from_tag(nfc_tag)
@@ -298,7 +299,7 @@ class SpotifyClient:
         """
         What to do when a tag event we're subscribed to comes in
         """
-        if not isinstance(nfc_tag, SpotifyTag) or tag_event.pad_num != 3:
+        if not isinstance(nfc_tag, SpotifyTag) or tag_event.pad_num != Dimensions.CIRCLE_PAD:
             return
         
         self.pause_playback_from_tag(nfc_tag)
