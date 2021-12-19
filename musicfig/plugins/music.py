@@ -4,8 +4,11 @@ import logging
 import tekore as tk
 import unidecode
 
-from .models import db, Song
+from ..models import db, Song
+from ..nfc_tag import NFCTag, register_tag_type
 from collections import namedtuple
+from flask import current_app
+from pubsub import pub
 from tekore._convert import to_uri
 from tekore._error import HTTPError
 
@@ -14,6 +17,31 @@ logger = logging.getLogger(__name__)
 ONE_MINUTE_IN_MS = 60 * 1000 # 60 seconds
 
 SpotifyClientConfig = namedtuple("SpotifyClientConfig", ["client_id", "client_secret", "redirect_uri"])
+
+# A brief note. We're going hard on all audio being played through Spotify; in fact, we're
+# going to not support playing through any other means. There is a fairly large refactor
+# which should be done to elegantly build up the state machine for playback from other sources,
+# ensuring we're only playing one source at a time, etc. Frankly, I don't have the brain
+# energy to do this at this time, so I'm not going to. Scope has been defined that we will
+# only play Spotify.
+
+
+class SpotifyTag(NFCTag):
+    required_attributes = ["spotify_uri"]
+
+    def _init_attributes(self):
+        super()._init_attributes()
+        self.spotify_uri = self.attributes["spotify_uri"]
+        try:
+            self.start_position_ms = int(self.attributes.get("start_position_ms", 0))
+        except ValueError as e:
+            logging.warning("invalid value [%s] found in start position config")
+            self.start_position_ms = 0
+
+
+    def should_use_class_based_execution(self):
+        return False
+
 
 class SpotifyClient:
 
@@ -31,18 +59,30 @@ class SpotifyClient:
         self.config = client_config
         self.credentials = None
         self.client = None
+        self.active_tag = None
+        self.paused_tag = None
         if client_config is not None:
             self._init_client()
 
     ###############################
-    # client configuration operations
+    # configuration, setup, initialization, registration operations
     ###############################
     def _app_config_to_client_config(self, app_config):
         return SpotifyClientConfig(app_config.get("CLIENT_ID"), app_config.get("CLIENT_SECRET"), app_config.get("REDIRECT_URI"))
 
     def init_app(self, app):
         self.config = self._app_config_to_client_config(app.config)
+        self.logger = app.logger
         self._init_client()
+
+        # makes the core app aware of this type
+        register_tag_type(SpotifyTag)
+
+        self.register_event_listeners()
+
+    def register_event_listeners(self):
+        pub.subscribe(self.on_tag_added, "tag.added")
+        pub.subscribe(self.on_tag_removed, "tag.removed")
 
     def _init_client(self):
         self.credentials = tk.Credentials(self.config.client_id, self.config.client_secret, self.config.redirect_uri)
@@ -75,13 +115,13 @@ class SpotifyClient:
             try:
                 token = self.credentials.refresh(token)
             except HTTPError as e:
-                logger.exception("failed refreshing token: %s", str(e))
+                self.logger.exception("failed refreshing token: %s", str(e))
             self.user_token_map[self.current_user_id] = token
         return token
     
     def set_current_user_id(self, user):
         self.current_user_id = user
-        logger.info(self.current_user_id)
+        self.logger.info(self.current_user_id)
     
     def get_user_token_for_code(self, code):
         return self.credentials.request_user_token(code)
@@ -109,7 +149,7 @@ class SpotifyClient:
         try:
             song = Song.query.filter(Song.id == track.id).first()
         except Exception as e:
-            logger.exception("Song query failed: %s", str(e))
+            self.logger.exception("Song query failed: %s", str(e))
             song = None
         
         if song is None:
@@ -133,7 +173,7 @@ class SpotifyClient:
             try:
                 currently_playing = self.client.playback_currently_playing()
             except HTTPError as e:
-                logger.exception("Could not find any track playing: %s", str(e))
+                self.logger.exception("Could not find any track playing: %s", str(e))
                 return None
 
         if currently_playing is None or not currently_playing.is_playing:
@@ -147,7 +187,7 @@ class SpotifyClient:
         
         token = self.get_current_user_token()
         if token is None:
-            logger.error("No Spotify token found")
+            self.logger.error("No Spotify token found")
             return
 
         return token 
@@ -161,7 +201,7 @@ class SpotifyClient:
             try:
                 self.client.playback_pause()
             except HTTPError as e:
-                logger.exception("Failed pausing playback: %s", str(e))
+                self.logger.exception("Failed pausing playback: %s", str(e))
     
     def resume(self):
         token = self._get_token_and_verify_active_and_configured()
@@ -197,9 +237,9 @@ class SpotifyClient:
                     self.client.playback_start_tracks([media_id], position_ms=position_ms)
                 else:
                     self.client.playback_start_context(to_uri(media_type, media_id))
-                logger.info("started playing media identified by %s", spotify_uri)
+                self.logger.info("started playing media identified by %s", spotify_uri)
             except HTTPError as e:
-                logger.exception("Failed spotcast with uri: %s due to error: %s", spotify_uri, str(e))
+                self.logger.exception("Failed spotcast with uri: %s due to error: %s", spotify_uri, str(e))
                 return
         
         if media_type != "track":
@@ -210,5 +250,55 @@ class SpotifyClient:
             return ONE_MINUTE_IN_MS
 
         return song.duration_ms
+    
+    def start_playback_from_tag(self, nfc_tag: SpotifyTag) -> int:
+        """
+        Begins playing the Spotify resource identified by the given tag
+        """
+        if nfc_tag is self.paused_tag:
+            self.resume()
+        else:
+            self.spotcast(nfc_tag.spotify_uri, nfc_tag.start_position_ms)
+            self.paused_tag = None
+        self.active_tag = nfc_tag
+    
+    def pause_playback_from_tag(self, nfc_tag: SpotifyTag) -> int:
+        if nfc_tag is not self.active_tag:
+            self.logger.warning("tag mismatch with active tag; given: %s vs active: %s", nfc_tag, self.active_tag)
+        
+        if self.active_tag is None:
+            self.paused_tag = None
+        else:
+            self.pause()
+            self.paused_tag = self.active_tag
+            self.active_tag = None
+    
+    ###############################
+    # Event Listeners
+    ###############################
+    def on_tag_added(self, tag_event, nfc_tag: NFCTag):
+        """
+        What to do when a tag event we're subscribed to comes in
+        """
+        if not isinstance(nfc_tag, SpotifyTag):
+            return
+
+        if tag_event.pad_num != 3:
+            pub.sendMessage("handler_response.add.error", tag_event=tag_event)
+        else:
+            self.start_playback_from_tag(nfc_tag)
+            pub.sendMessage("handler_response.add.success", tag_event=tag_event, color=nfc_tag.get_pad_color())
+
+    def on_tag_removed(self, tag_event, nfc_tag: NFCTag):
+        """
+        What to do when a tag event we're subscribed to comes in
+        """
+        if not isinstance(nfc_tag, SpotifyTag) or tag_event.pad_num != 3:
+            return
+        
+        self.pause_playback_from_tag(nfc_tag)
+
+        pub.sendMessage("handler_response.remove.success", tag_event=tag_event)
+    
 
 spotify_client = SpotifyClient()

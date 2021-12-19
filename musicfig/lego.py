@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 
-from . import socketio, mp3player, spotify
-from .spotify import SpotifyClientConfig, SpotifyClient
+from . import mp3player#, spotify
+#from .spotify import spotify_client
 from collections import namedtuple
 from flask import current_app
-from musicfig import colors, webhook
+from musicfig import colors
 from mutagen.mp3 import MP3
-from musicfig.nfc_tag import LegacyTag, NFCTagManager, NFCTag, NFCTagOperationError, SpotifyTag
+from musicfig.nfc_tag import NFCTagManager, NFCTagOperationError
+from pubsub import pub
+
 
 import binascii
 import glob
 import logging
 import os
 import random
-import signal
 import threading
-import time
 import usb.core
 import usb.util
 
@@ -39,7 +39,62 @@ logger = logging.getLogger(__name__)
 DimensionsTagEvent = namedtuple("DimensionsTagEvent", ["was_removed", "pad_num", "identifier"])
 
 
-class Dimensions():
+class BaseDimensions():
+    """
+    requires context
+    """
+    def __init__(self):
+        self.logger = current_app.logger
+
+    def init_usb(self):
+        pass
+
+    def send_command(self, command):
+        pass
+
+    def change_pad_color(self, pad, colour):
+        pass
+
+    def fade_pad_color(self, pad, pulse_time, pulse_count, colour):
+        pass
+
+    def flash_pad_color(self, pad, on_length, off_length, pulse_count, colour):
+        pass
+
+    def get_tag_event(self):
+        raise NotImplemented()
+
+
+class FakeDimensions(BaseDimensions):
+    def __init__(self):
+        self.tags = []
+
+    def get_tag_event(self):
+        """
+        randomly returns a tag event
+        """
+        seed = random.randint(1, 100000)
+        if seed > 1:
+            return
+
+        other_seed = random.randint(1, 2)
+
+        m = other_seed % 2
+        removed = m == 0
+        tag = None
+        pad = None
+        if removed:
+            if len(self.tags) > 0:
+                tag, pad = self.tags.pop(random.randrange(len(self.tags)))
+        else:
+            pad = random.randint(1, 3)
+            tag = ''.join(random.choice('0123456789abcdef') for n in range(14))
+            self.tags.append((tag, pad))
+        
+        return None if tag is None else DimensionsTagEvent(removed, pad, tag)
+
+
+class Dimensions(BaseDimensions):
     """
     Representation of the LEGO Dimensions USB device. This provides the interface by which
     commands are sent and NFC tag events are detected.
@@ -50,6 +105,7 @@ class Dimensions():
     def __init__(self):
         try:
            self.dev = self.init_usb()
+           self.logger = current_app.logger
         except Exception as e:
             logging.exception("failed initialization: %s", e)
             raise e
@@ -100,7 +156,7 @@ class Dimensions():
         try:
             self.dev.write(1, message)
         except Exception as e:
-            logging.info("exception: %s", e)
+            self.logger.info("exception: %s", e)
             pass
 
     def change_pad_color(self, pad, colour):
@@ -185,19 +241,93 @@ class Dimensions():
         """
         try:
             inwards_packet = self.dev.read(0x81, 32, timeout = 10)
-            bytelist = list(inwards_packet)
-            if not bytelist:
-                return
-            if bytelist[0] != 0x56:
-                return
-            pad_num = bytelist[2]
-            uid_bytes = bytelist[6:13]
-            identifier = binascii.hexlify(bytearray(uid_bytes)).decode("utf-8")
-            identifier = identifier.replace('000000','')
-            removed = bool(bytelist[5])
-            return DimensionsTagEvent(removed, pad_num, identifier)
-        except Exception:
+        except Exception as e:
+            self.logger.exception("encountered error while reading")
             return
+
+        bytelist = list(inwards_packet)
+        if not bytelist:
+            return
+        if bytelist[0] != 0x56:
+            return
+        pad_num = bytelist[2]
+        uid_bytes = bytelist[6:13]
+        identifier = binascii.hexlify(bytearray(uid_bytes)).decode("utf-8")
+        identifier = identifier.replace('000000','')
+        removed = bool(bytelist[5])
+        event = DimensionsTagEvent(removed, pad_num, identifier)
+        self.logger.debug("generated event %s", event)
+        return event
+
+
+class DimensionsLoop(threading.Thread):
+    """
+    Manages the application loop for working with the Dimensions base
+
+    The main set of tasks contained within is to poll for dimensions
+    tag events, map them to database records, and dispatch events to the 
+    event dispatcher for later handling.
+    """
+
+    def __init__(self, group=None, target=None, name=None, args=(), kwargs=None, *, daemon=None):
+        super().__init__(group=group, target=target, name=name, args=args, kwargs=kwargs, daemon=daemon)
+        self.current_active_tags = set() # this may be better in the Dimensions
+        self.do_loop = True
+
+    def init_app(self, app):
+        """
+        No exceptions caught; everything bubbles up
+        """
+        self.app = app
+        self.logger = app.logger
+        with app.app_context():
+            # @todo make this configurable somehow
+            self.dimensions = FakeDimensions()
+            self.nfc_tag_manager = NFCTagManager.get_instance() # maybe turn this into an init_app() as well
+        self._init_event_handlers()
+    
+    def _init_event_handlers(self):
+        pub.subscribe(self.on_tag_added_error, "handler_response.add.error")
+        pub.subscribe(self.on_tag_added_success, "handler_response.add.success")
+        pub.subscribe(self.on_tag_removed_success, "handler.response.remove.success")
+    
+    def stop_loop(self):
+        self.do_loop = False
+
+    def run(self):
+        with self.app.app_context():
+            while self.do_loop:
+                if random.randint(1, 100) == 0:
+                    self.l.info("loop")
+                
+                tag_event = self.dimensions.get_tag_event()
+                if tag_event is None:
+                    continue
+                
+                nfc_tag = self.nfc_tag_manager.get_nfc_tag_by_id(tag_event.identifier)
+
+                self.update_active_tags(tag_event, nfc_tag)
+
+                self.publish_event(tag_event, nfc_tag)
+    
+    def publish_event(self, tag_event, nfc_tag):
+        topic = "tag.removed" if tag_event.was_removed else "tag.added"
+        pub.sendMessage(topic, tag_event=tag_event, nfc_tag=nfc_tag)
+
+    def update_active_tags(self, tag_event, nfc_tag):
+        if tag_event.was_removed:
+            self.current_active_tags.discard(nfc_tag) # discard doesn't raise an error if the item isn't in the set
+        else:
+            self.current_active_tags.add(nfc_tag)
+
+    def on_tag_added_error(self, tag_event: DimensionsTagEvent):
+        self.logger.info(tag_event)
+    
+    def on_tag_added_success(self, tag_event: DimensionsTagEvent, color=colors.BLUE):
+        self.logger.info("tag event: %s, color: %s", tag_event, color)
+    
+    def on_tag_removed_success(self, tag_event: DimensionsTagEvent):
+        self.logger.info(tag_event)
 
 
 class Base():
@@ -221,10 +351,11 @@ class Base():
     def _init_spotify(self):
         cur_obj = current_app._get_current_object()
         config = cur_obj.config
-        spotify_client_config = SpotifyClientConfig(config.get("CLIENT_ID"),
-            config.get("CLIENT_SECRET"), config.get("REDIRECT_URI"))
 
-        self.spotify_client = SpotifyClient.get_client(client_config=spotify_client_config)
+        # spotify_client_config = SpotifyClientConfig(config.get("CLIENT_ID"),
+        #     config.get("CLIENT_SECRET"), config.get("REDIRECT_URI"))
+
+        # self.spotify_client = SpotifyClient.get_client(client_config=spotify_client_config)
 
     # def randomLightshow(self,duration = 60):
     #     logger.info("Lightshow started for %s seconds." % duration)
@@ -334,7 +465,6 @@ class Base():
         global current_tag
         global previous_tag
         global mp3state
-        global p
         #global switch_lights
         current_tag = None
         previous_tag = None
@@ -381,12 +511,16 @@ class Base():
                     # except Exception:
                     #     pass
                     self.pauseMp3()
-                    if self.spotify_client.is_activated():
-                        self.spotify_client.pause()
+                    if spotify_client.is_activated():
+                        spotify_client.pause()
+                    # if self.spotify_client.is_activated():
+                    #     self.spotify_client.pause()
                 elif isinstance(current_tag, SpotifyTag) and tag_event.identifier == current_tag.identifier:
                     self.pauseMp3()
-                    if self.spotify_client.is_activated():
-                        self.spotify_client.pause()
+                    if spotify_client.is_activated():
+                        spotify_client.pause()
+                    # if self.spotify_client.is_activated():
+                    #     self.spotify_client.pause()
             else:
                 self.base.change_pad_color(pad=tag_event.pad_num, colour=colors.BLUE)
 
@@ -418,14 +552,17 @@ class Base():
                 else:
                     if isinstance(nfc_tag, SpotifyTag):
                         logger.info("spotify tag")
-                        if self.spotify_client.is_activated():
+                        if spotify_client.is_activated():
+                        #if self.spotify_client.is_activated():
                             logger.info("activated")
                             if current_tag == previous_tag:
-                                self.spotify_client.resume()
+                                spotify_client.resume()
+                                #self.spotify_client.resume()
                                 #self.startLightshow(self.spotify_client.resume())
                                 continue
                             self.stopMp3()
-                            duration_ms = self.spotify_client.spotcast(nfc_tag.spotify_uri, nfc_tag.start_position_ms)
+                            duration_ms = spotify_client.spotcast(nfc_tag.spotify_uri, nfc_tag.start_position_ms)
+                            #duration_ms = self.spotify_client.spotcast(nfc_tag.spotify_uri, nfc_tag.start_position_ms)
                             # if duration_ms > 0:
                             #     self.startLightshow(duration_ms)
                             #else:

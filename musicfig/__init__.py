@@ -3,11 +3,14 @@ import os
 import logging
 
 from .database import db
-from .spotify import spotify_client
+from .lego import DimensionsLoop
+from .socketio import socketio
+from .plugins.music import spotify_client
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 from logging.config import dictConfig
+from pubsub import pub
 from threading import Thread
 
 dictConfig({
@@ -58,11 +61,22 @@ os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 #     pass
 app_version = "heavy development"
 
-socketio = SocketIO()
-lego_thread = Thread()
+# this is where you will put all your plugins
+plugins = [
+    spotify_client
+]
+
+#socketio = SocketIO()
+lego_thread = DimensionsLoop()
 
 from . import models
 #from . import events
+
+def l(tag_event, nfc_tag):
+    logger.info("%s, %s", tag_event, nfc_tag)
+
+pub.subscribe(l, 'tag.added')
+pub.subscribe(l, 'tag.removed')
 
 def init_app():
     app = Flask(__name__,
@@ -72,35 +86,24 @@ def init_app():
 
     db.init_app(app)
     socketio.init_app(app)
-    spotify_client.init_app(app)
+    lego_thread.init_app(app)
+
+    # Initializes all of the plugins. Any registration of models, attaching
+    # of listeners, etc. should be done within each plugins' `init_app()`
+    for plugin in plugins:
+        plugin.init_app(app)
 
     @app.errorhandler(404)
     def not_found(error):
         return render_template('404.html'), 404
-
-    class FlaskThread(Thread):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.app = app
-        
-        def run(self):
-            with self.app.app_context():
-                super().run()
 
     with app.app_context(), app.test_request_context():
         from .web import web as web_blueprint
         app.register_blueprint(web_blueprint)
 
         db.create_all()
-
-        from .lego import Base
-        def connect_lego():
-            global lego_thread
-            lego_thread = FlaskThread(target=Base)
-            lego_thread.daemon = True
-            lego_thread.start()
-
-        # connect_lego()
+        lego_thread.daemon = True
+        lego_thread.start()
 
         from .events import NFCTagHandler
         socketio.on_namespace(NFCTagHandler())

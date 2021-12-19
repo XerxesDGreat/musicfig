@@ -1,6 +1,6 @@
 import logging
 
-#1f6J%jFb$zlP
+# figure out how to make this a plugin, maybe
 
 from . import web
 from flask import \
@@ -8,7 +8,7 @@ from flask import \
     render_template, \
     request, \
     session
-from ..spotify import spotify_client
+from ..plugins.music import spotify_client
 
 logger = logging.getLogger(__name__)
 

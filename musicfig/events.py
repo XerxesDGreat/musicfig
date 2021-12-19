@@ -1,7 +1,7 @@
 import logging
 
-from . import socketio
 from .nfc_tag import NFCTagManager
+from .socketio import socketio
 from flask import current_app
 from flask_socketio import Namespace, emit
 

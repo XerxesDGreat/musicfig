@@ -9,7 +9,7 @@ import time
 import xled
 import yaml
 
-from . import socketio
+from .socketio import socketio
 from .models import db, NFCTagModel
 from flask import Blueprint, request, render_template, \
                   flash, g, session, redirect, url_for, \
@@ -27,6 +27,15 @@ class NFCTagOperationError(BaseException):
     pass
 
 class NFCTag():
+    @classmethod
+    def get_friendly_name(cls):
+        """
+        hacky - but effective - way to get the friendly name of this class.
+
+        Brittle because it assumes the class name ends in "Tag"
+        """
+        return cls.__name__[0:-3].lower()
+
     def __init__(self, identifier, name=None, description=None, attributes={}, **kwargs):
         self.identifier = identifier
         self.name = name
@@ -231,21 +240,21 @@ class TwinklyTag(NFCTag):
         logger.info("operation %s took %s ms", operation, int((end - start) * 1000))
         return response
 
-class SpotifyTag(NFCTag):
-    required_attributes = ["spotify_uri"]
+# class SpotifyTag(NFCTag):
+#     required_attributes = ["spotify_uri"]
 
-    def _init_attributes(self):
-        super()._init_attributes()
-        self.spotify_uri = self.attributes["spotify_uri"]
-        try:
-            self.start_position_ms = int(self.attributes.get("start_position_ms", 0))
-        except ValueError as e:
-            logging.warning("invalid value [%s] found in start position config")
-            self.start_position_ms = 0
+#     def _init_attributes(self):
+#         super()._init_attributes()
+#         self.spotify_uri = self.attributes["spotify_uri"]
+#         try:
+#             self.start_position_ms = int(self.attributes.get("start_position_ms", 0))
+#         except ValueError as e:
+#             logging.warning("invalid value [%s] found in start position config")
+#             self.start_position_ms = 0
 
 
-    def should_use_class_based_execution(self):
-        return False
+#     def should_use_class_based_execution(self):
+#         return False
 
 
 class NFCTagStore():
@@ -320,13 +329,15 @@ class NFCTagStore():
         return model
 
 
-
 TAG_REGISTRY_MAP = {
     "slack": SlackTag,
-    "spotify": SpotifyTag,
+    #"spotify": SpotifyTag,
     "twinkly": TwinklyTag,
     "webhook": WebhookTag,
 }
+
+def register_tag_type(nfc_tag_class):
+    TAG_REGISTRY_MAP[nfc_tag_class.get_friendly_name()] = nfc_tag_class
 
 class NFCTagManager():
     # todo; merge this class with NFCTagStore
@@ -395,7 +406,7 @@ class NFCTagManager():
             nfc_tag = UnknownTag(id)
         else:
             nfc_tag = self.nfc_tag_from_model(nfc_tag_model)
-        logger.info("built tag of type %s from info %s", type(nfc_tag), nfc_tag_model)
+        logger.debug("built tag of type %s from info %s", type(nfc_tag), nfc_tag_model)
         return nfc_tag
     
 
