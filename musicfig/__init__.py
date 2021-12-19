@@ -5,7 +5,7 @@ import logging
 from .database import db
 from .lego import DimensionsLoop
 from .socketio import socketio
-from .plugins.music import spotify_client
+from .plugins.spotify import spotify_client
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy

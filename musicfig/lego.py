@@ -428,259 +428,174 @@ class DimensionsLoop(threading.Thread):
 
 
 
-class Base():
-    #perhaps initialize this in such a way that the application gives up
-    def __init__(self):
-        self._init_spotify()
-        self.base = self.startLego()
+# class Base():
+#     #perhaps initialize this in such a way that the application gives up
+#     def __init__(self):
+#         self._init_spotify()
+#         self.base = self.startLego()
 
-    def _init_spotify(self):
-        cur_obj = current_app._get_current_object()
-        config = cur_obj.config
+#     def _init_spotify(self):
+#         cur_obj = current_app._get_current_object()
+#         config = cur_obj.config
 
-        # spotify_client_config = SpotifyClientConfig(config.get("CLIENT_ID"),
-        #     config.get("CLIENT_SECRET"), config.get("REDIRECT_URI"))
+#         # spotify_client_config = SpotifyClientConfig(config.get("CLIENT_ID"),
+#         #     config.get("CLIENT_SECRET"), config.get("REDIRECT_URI"))
 
-        # self.spotify_client = SpotifyClient.get_client(client_config=spotify_client_config)
+#         # self.spotify_client = SpotifyClient.get_client(client_config=spotify_client_config)
 
-    # def randomLightshow(self,duration = 60):
-    #     logger.info("Lightshow started for %s seconds." % duration)
-    #     self.lightshowThread = threading.currentThread()
-    #     t = time.perf_counter()
-    #     while getattr(self.lightshowThread, "do_run", True) and (time.perf_counter() - t) < duration:
-    #         pad = random.randint(0,2)
-    #         self.colour = random.randint(0,len(self.COLOURS)-1)
-    #         self.base.change_pad_color(pad,eval(self.COLOURS[self.colour]))
-    #         time.sleep(round(random.uniform(0,0.5), 1))
-    #     self.base.change_pad_color(0,self.OFF)
+#     # def randomLightshow(self,duration = 60):
+#     #     logger.info("Lightshow started for %s seconds." % duration)
+#     #     self.lightshowThread = threading.currentThread()
+#     #     t = time.perf_counter()
+#     #     while getattr(self.lightshowThread, "do_run", True) and (time.perf_counter() - t) < duration:
+#     #         pad = random.randint(0,2)
+#     #         self.colour = random.randint(0,len(self.COLOURS)-1)
+#     #         self.base.change_pad_color(pad,eval(self.COLOURS[self.colour]))
+#     #         time.sleep(round(random.uniform(0,0.5), 1))
+#     #     self.base.change_pad_color(0,self.OFF)
 
-    # def startLightshow(self,duration_ms):
-    #     if switch_lights:
-    #         self.lightshowThread = threading.Thread(target=self.randomLightshow,
-    #             args=([(duration_ms / 1000)]))
-    #         self.lightshowThread.daemon = True
-    #         self.lightshowThread.start()
+#     # def startLightshow(self,duration_ms):
+#     #     if switch_lights:
+#     #         self.lightshowThread = threading.Thread(target=self.randomLightshow,
+#     #             args=([(duration_ms / 1000)]))
+#     #         self.lightshowThread.daemon = True
+#     #         self.lightshowThread.start()
 
-    def initMp3(self):
-        self.p = mp3player.Player()
-        def monitor():
-            global mp3state
-            global mp3elapsed
-            while True:
-                state = self.p.event_queue.get(block=True, timeout=None)
-                mp3state = str(state[0]).replace('PlayerState.','')
-                mp3elapsed = state[1]
-            logger.info('thread exited.')
-        threading.Thread(target=monitor, name="monitor").daemon = True
-        threading.Thread(target=monitor, name="monitor").start() 
 
-    def startMp3(self, filename, mp3_dir, is_playlist=False):
-        global mp3_duration
-        # load an mp3 file
-        if not is_playlist:
-            mp3file = mp3_dir + filename
-            logger.info('Playing %s.' % filename)
-            self.p.open(mp3file)
-            self.p.play()
-
-            audio = MP3(mp3file)
-            mp3_duration = audio.info.length
-            #self.startLightshow(mp3_duration * 1000)
-        else:
-            self.p.playlist(filename)
-            mp3_duration = 0
-            if filename:
-                for file_mp3 in filename:
-                    audio = MP3(file_mp3)
-                    mp3_duration = mp3_duration + audio.info.length
-            else:
-                logger.info('Check the folder, maybe empty!!!')
-            #self.startLightshow(mp3_duration * 1000)
-
-    def stopMp3(self):
-        global mp3state
-        try:
-            #self.p.stop()
-            mp3state = 'STOPPED'
-        except Exception:
-            pass
-
-    def pauseMp3(self):
-        global mp3state
-        if 'PLAYING' in mp3state:
-            self.p.pause()
-            logger.info('Track paused.')
-            mp3state = 'PAUSED'
-            return
-
-    def playMp3(self, filename, mp3_dir):
-        global t
-        global mp3state
-        self.spotify_client.pause()
-        if previous_tag == current_tag and 'PAUSED' in ("%s" % mp3state):
-            # Resume
-            logger.info("Resuming mp3 track.")
-            self.p.play()
-            remaining = mp3_duration - mp3elapsed
-            if remaining >= 0.1:
-                self.startLightshow(remaining * 1000)
-                return
-        # New play 
-        self.stopMp3()
-        self.startMp3(filename, mp3_dir)
-        mp3state = 'PLAYING'
-
-    def playPlaylist(self, playlist_filename, mp3_dir, shuffle=False):
-        global mp3state
-        list_mp3_to_play = []
-        self.spotify_client.pause()
-
-        mp3list = mp3_dir +'/'+ playlist_filename + '/*.mp3'
-        ##logger.debug(mp3list)
-
-        list_mp3_to_play = glob.glob(mp3list)
-
-        if shuffle:
-            random.shuffle(list_mp3_to_play)
-        ##logger.debug(list_mp3_to_play)
-
-        self.startMp3(list_mp3_to_play, mp3_dir, True)
-        mp3state = 'PLAYING'
-
-    def startLego(self):
-        global current_tag
-        global previous_tag
-        global mp3state
-        #global switch_lights
-        current_tag = None
-        previous_tag = None
-        mp3state = None
-        nfc = NFCTagManager.get_instance()
-        try:
-            self.base = Dimensions()
-        except Exception as e:
-            logger.exception("Unable to initialize Dimensions; aborting")
-            return False
+#     def startLego(self):
+#         global current_tag
+#         global previous_tag
+#         global mp3state
+#         #global switch_lights
+#         current_tag = None
+#         previous_tag = None
+#         mp3state = None
+#         nfc = NFCTagManager.get_instance()
+#         try:
+#             self.base = Dimensions()
+#         except Exception as e:
+#             logger.exception("Unable to initialize Dimensions; aborting")
+#             return False
             
-        logger.info("Lego Dimensions base activated.")
-        self.initMp3()
-        #switch_lights = current_app.config["RUN_LIGHT_SHOW_DEFAULT"]
-        #logger.info('Lightshow is %s' % switch_lights) #("disabled", "enabled")[switch_lights])
-        self.base.change_pad_color(0, colors.DIM)
-        # if switch_lights:
-        #     self.base.change_pad_color(0,self.GREEN)
-        # else:
-        #     self.base.change_pad_color(0,self.OFF)
+#         logger.info("Lego Dimensions base activated.")
+#         self.initMp3()
+#         #switch_lights = current_app.config["RUN_LIGHT_SHOW_DEFAULT"]
+#         #logger.info('Lightshow is %s' % switch_lights) #("disabled", "enabled")[switch_lights])
+#         self.base.change_pad_color(0, colors.DIM)
+#         # if switch_lights:
+#         #     self.base.change_pad_color(0,self.GREEN)
+#         # else:
+#         #     self.base.change_pad_color(0,self.OFF)
 
-        i = 0
-        while True:
-            #time.sleep(1)
-            i = i + 1
-            if i == 10000:
-                logging.info("loop")
-                i = 0
-            tag_event = self.base.get_tag_event()
-            if not tag_event:
-                continue
+#         i = 0
+#         while True:
+#             #time.sleep(1)
+#             i = i + 1
+#             if i == 10000:
+#                 logging.info("loop")
+#                 i = 0
+#             tag_event = self.base.get_tag_event()
+#             if not tag_event:
+#                 continue
 
-            # status = tag.split(':')[0]
-            # pad = int(tag.split(':')[1])
-            # identifier = tag.split(':')[2]
-            logging.info(tag_event)
+#             # status = tag.split(':')[0]
+#             # pad = int(tag.split(':')[1])
+#             # identifier = tag.split(':')[2]
+#             logging.info(tag_event)
 
-            if tag_event.was_removed:
-                self.base.change_pad_color(pad=tag_event.pad_num, colour=colors.DIM)
-                if tag_event.identifier == current_tag:
-                    # try:
-                    #     self.lightshowThread.do_run = False
-                    #     self.lightshowThread.join()
-                    # except Exception:
-                    #     pass
-                    self.pauseMp3()
-                    if spotify_client.is_activated():
-                        spotify_client.pause()
-                    # if self.spotify_client.is_activated():
-                    #     self.spotify_client.pause()
-                elif isinstance(current_tag, SpotifyTag) and tag_event.identifier == current_tag.identifier:
-                    self.pauseMp3()
-                    if spotify_client.is_activated():
-                        spotify_client.pause()
-                    # if self.spotify_client.is_activated():
-                    #     self.spotify_client.pause()
-            else:
-                self.base.change_pad_color(pad=tag_event.pad_num, colour=colors.BLUE)
+#             if tag_event.was_removed:
+#                 self.base.change_pad_color(pad=tag_event.pad_num, colour=colors.DIM)
+#                 if tag_event.identifier == current_tag:
+#                     # try:
+#                     #     self.lightshowThread.do_run = False
+#                     #     self.lightshowThread.join()
+#                     # except Exception:
+#                     #     pass
+#                     self.pauseMp3()
+#                     if spotify_client.is_activated():
+#                         spotify_client.pause()
+#                     # if self.spotify_client.is_activated():
+#                     #     self.spotify_client.pause()
+#                 elif isinstance(current_tag, SpotifyTag) and tag_event.identifier == current_tag.identifier:
+#                     self.pauseMp3()
+#                     if spotify_client.is_activated():
+#                         spotify_client.pause()
+#                     # if self.spotify_client.is_activated():
+#                     #     self.spotify_client.pause()
+#             else:
+#                 self.base.change_pad_color(pad=tag_event.pad_num, colour=colors.BLUE)
 
-                mp3_dir = current_app.config["MP3_DIR"]
-                ##logger.debug(mp3_dir)
+#                 mp3_dir = current_app.config["MP3_DIR"]
+#                 ##logger.debug(mp3_dir)
 
-                # Stop any current songs and light shows
-                # try:
-                #     self.lightshowThread.do_run = False
-                #     self.lightshowThread.join()
-                # except Exception:
-                #     pass
+#                 # Stop any current songs and light shows
+#                 # try:
+#                 #     self.lightshowThread.do_run = False
+#                 #     self.lightshowThread.join()
+#                 # except Exception:
+#                 #     pass
 
-                # nfc_tag could be a dict or an NFCTag object
-                nfc_tag = nfc.get_nfc_tag_by_id(tag_event.identifier)
-                logging.info(nfc_tag)
+#                 # nfc_tag could be a dict or an NFCTag object
+#                 nfc_tag = nfc.get_nfc_tag_by_id(tag_event.identifier)
+#                 logging.info(nfc_tag)
 
-                previous_tag = current_tag
-                current_tag = nfc_tag.identifier
+#                 previous_tag = current_tag
+#                 current_tag = nfc_tag.identifier
 
-                if nfc_tag.should_use_class_based_execution():
-                    logging.info("doing new")
-                    try:
-                        nfc_tag.on_add()
-                    except NFCTagOperationError as e:
-                        logger.exception(e)
-                        self.base.flash_pad_color(pad=tag_event.pad_num, on_length=8, off_length=8, pulse_count=4, colour=colors.RED)
+#                 if nfc_tag.should_use_class_based_execution():
+#                     logging.info("doing new")
+#                     try:
+#                         nfc_tag.on_add()
+#                     except NFCTagOperationError as e:
+#                         logger.exception(e)
+#                         self.base.flash_pad_color(pad=tag_event.pad_num, on_length=8, off_length=8, pulse_count=4, colour=colors.RED)
                 
-                else:
-                    if isinstance(nfc_tag, SpotifyTag):
-                        logger.info("spotify tag")
-                        if spotify_client.is_activated():
-                        #if self.spotify_client.is_activated():
-                            logger.info("activated")
-                            if current_tag == previous_tag:
-                                spotify_client.resume()
-                                #self.spotify_client.resume()
-                                #self.startLightshow(self.spotify_client.resume())
-                                continue
-                            self.stopMp3()
-                            duration_ms = spotify_client.spotcast(nfc_tag.spotify_uri, nfc_tag.start_position_ms)
-                            #duration_ms = self.spotify_client.spotcast(nfc_tag.spotify_uri, nfc_tag.start_position_ms)
-                            # if duration_ms > 0:
-                            #     self.startLightshow(duration_ms)
-                            #else:
-                            # self.base.flash_pad_color(pad=tag_event.pad_num, on_length=10,
-                            #     off_length=10, pulse_count=2, colour=self.RED)
-                        else: 
-                            logger.info("not activated")
-                            current_tag = previous_tag
+#                 else:
+#                     if isinstance(nfc_tag, SpotifyTag):
+#                         logger.info("spotify tag")
+#                         if spotify_client.is_activated():
+#                         #if self.spotify_client.is_activated():
+#                             logger.info("activated")
+#                             if current_tag == previous_tag:
+#                                 spotify_client.resume()
+#                                 #self.spotify_client.resume()
+#                                 #self.startLightshow(self.spotify_client.resume())
+#                                 continue
+#                             self.stopMp3()
+#                             duration_ms = spotify_client.spotcast(nfc_tag.spotify_uri, nfc_tag.start_position_ms)
+#                             #duration_ms = self.spotify_client.spotcast(nfc_tag.spotify_uri, nfc_tag.start_position_ms)
+#                             # if duration_ms > 0:
+#                             #     self.startLightshow(duration_ms)
+#                             #else:
+#                             # self.base.flash_pad_color(pad=tag_event.pad_num, on_length=10,
+#                             #     off_length=10, pulse_count=2, colour=self.RED)
+#                         else: 
+#                             logger.info("not activated")
+#                             current_tag = previous_tag
 
-                            #https://open.spotify.com/playlist/6VdvufagCnB6BS52MxwPRw?si=9718899179eb413e
+#                             #https://open.spotify.com/playlist/6VdvufagCnB6BS52MxwPRw?si=9718899179eb413e
                     
-                    else:
+#                     else:
                     
-                        nfc_tag = nfc_tag.definition
+#                         nfc_tag = nfc_tag.definition
 
-                        logging.info("doing old: %s", nfc_tag)
-                        # if current_tag == None:
-                        #     previous_tag = tag_event.identifier
-                        # else:
-                        # A tag has been matched
-                        if 'playlist' in nfc_tag:
-                            playlist = nfc_tag['playlist']
-                            if 'shuffle' in nfc_tag:
-                                shuffle = True
-                            else:
-                                shuffle = False
-                            self.playPlaylist(playlist, mp3_dir, shuffle)
-                        if 'mp3' in nfc_tag:
-                            filename = nfc_tag['mp3']
-                            self.playMp3(filename, mp3_dir)
-                        if 'command' in nfc_tag:
-                            command = nfc_tag['command']
-                            logger.info('Running command %s' % command)
-                            os.system(command)
+#                         logging.info("doing old: %s", nfc_tag)
+#                         # if current_tag == None:
+#                         #     previous_tag = tag_event.identifier
+#                         # else:
+#                         # A tag has been matched
+#                         if 'playlist' in nfc_tag:
+#                             playlist = nfc_tag['playlist']
+#                             if 'shuffle' in nfc_tag:
+#                                 shuffle = True
+#                             else:
+#                                 shuffle = False
+#                             self.playPlaylist(playlist, mp3_dir, shuffle)
+#                         if 'mp3' in nfc_tag:
+#                             filename = nfc_tag['mp3']
+#                             self.playMp3(filename, mp3_dir)
+#                         if 'command' in nfc_tag:
+#                             command = nfc_tag['command']
+#                             logger.info('Running command %s' % command)
+#                             os.system(command)
                     

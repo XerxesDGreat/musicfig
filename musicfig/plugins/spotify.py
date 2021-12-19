@@ -26,10 +26,25 @@ SpotifyClientConfig = namedtuple("SpotifyClientConfig", ["client_id", "client_se
 # energy to do this at this time, so I'm not going to. Scope has been defined that we will
 # only play Spotify.
 
-# That said, my initial thoughts are we should have a MusicManager which does the centralized
-# playback/pause/what's playing now control, and the strategies used to play music are swapped
-# in and out based on the tags. That's why this module is called "music" and not "spotify", even
-# though we're only supporting Spotify at the moment
+# Further, since the raspberry pi is not a spotify device, we'd need two different inputs into
+# whatever speakers are going to happen: from the spotify device (which, often as not, will
+# have its own speakers, especially if you're using like a TV, Alexa, Sonos, Spotify-enabled
+# stereo, phone or tablet, etc) as well as the output from the Pi. I mean, it's not impossible,
+# but that starts getting funky really quickly. Thus, definitely going to only implement Spotify
+# at this time.
+
+# That said, there is definitely a use case where we could configure the app to use EITHER
+# local MP3s OR Spotify in case an internet connection is not available. With that in mind,
+# we can make some assumptions on how to construct the two and how they should interact, but
+# we should not assume there will be any instance in which both of these are being used.
+# ...
+# ...
+# okay, so I can imagine ways in which both could be used. I mean, in reality, Spotify is just
+# a webhook, whereas MP3 playing is a local operation, so one _could_ decide they want to set
+# it up for, say, dual zones. Another idea is like background music + a sound board. There
+# are use cases for having both, so I'll think about integrating both into one.
+#
+# but not today
 
 
 class SpotifyTag(NFCTag):
