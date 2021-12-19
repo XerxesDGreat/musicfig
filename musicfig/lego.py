@@ -282,7 +282,7 @@ class DimensionsLoop(threading.Thread):
         self.logger = app.logger
         with app.app_context():
             # @todo make this configurable somehow
-            self.dimensions = FakeDimensions()
+            self.dimensions = FakeDimensions() if app.config.get("USE_MOCK_PAD") else Dimensions()
             self.nfc_tag_manager = NFCTagManager.get_instance() # maybe turn this into an init_app() as well
         self._init_event_handlers()
     
