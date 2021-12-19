@@ -258,6 +258,8 @@ class TwinklyTag(NFCTag):
 
 
 class NFCTagStore():
+    tag_cache = {}
+
     @staticmethod
     def get_last_updated_time():
         latest_nfc_tag = NFCTagModel.query.order_by(NFCTagModel.last_updated.desc()).first()
@@ -400,19 +402,25 @@ class NFCTagManager():
         old-style or new-style tags, depending on which store it comes from.
         New style will override old style
         """
-        nfc_tag_model = NFCTagStore.get_nfc_tag_by_id(id)
-        
-        if nfc_tag_model is None:
-            nfc_tag = UnknownTag(id)
-        else:
-            nfc_tag = self.nfc_tag_from_model(nfc_tag_model)
-        logger.debug("built tag of type %s from info %s", type(nfc_tag), nfc_tag_model)
-        return nfc_tag
+        if id not in self.tags:
+            nfc_tag_model = NFCTagStore.get_nfc_tag_by_id(id)
+            
+            if nfc_tag_model is None:
+                nfc_tag = UnknownTag(id)
+            else:
+                nfc_tag = self.nfc_tag_from_model(nfc_tag_model)
+            logger.debug("built tag of type %s from info %s", type(nfc_tag), nfc_tag_model)
+            self.tags[id] = nfc_tag
+        return self.tags.get(id)
     
 
     def delete_nfc_tag_by_id(self, id):
         if id is None:
             return
+        try:
+            self.tags.pop(id)
+        except Exception:
+            pass
         success = NFCTagStore.delete_nfc_tag_by_id(id)
         socketio.emit("tag_deleted", {"tag_id": id})
     
@@ -427,7 +435,9 @@ class NFCTagManager():
             attributes = json.dumps(dict)
 
         model_obj = NFCTagStore.create_nfc_tag(id, tag_type, name, description, attributes)
-        return self.nfc_tag_from_model(model_obj)
+        nfc_tag = self.nfc_tag_from_model(model_obj)
+        self.tags[id] = nfc_tag
+        return nfc_tag
 
         
 
