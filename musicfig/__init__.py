@@ -2,10 +2,10 @@
 import os
 import logging
 
+from . import plugins
 from .database import db
 from .main import MainLoop
 from .socketio import socketio
-from .plugins import spotify_client, twinkly_plugin
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
@@ -63,9 +63,10 @@ os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 app_version = "heavy development"
 
 # this is where you will put all your plugins
-plugins = [
-    spotify_client,
-    twinkly_plugin
+registered_plugins = [
+    plugins.spotify_client,
+    plugins.twinkly_plugin,
+    plugins.webhook_plugin
 ]
 
 #socketio = SocketIO()
@@ -92,7 +93,7 @@ def init_app():
 
     # Initializes all of the plugins. Any registration of models, attaching
     # of listeners, etc. should be done within each plugins' `init_app()`
-    for plugin in plugins:
+    for plugin in registered_plugins:
         plugin.init_app(app)
 
     @app.errorhandler(404)

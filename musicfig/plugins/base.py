@@ -170,3 +170,12 @@ class BasePlugin:
         tag_event -- DimensionsTagEvent the event which triggered the failure 
         """
         pub.sendMessage("handler_response.remove.success", tag_event=tag_event)
+    
+    def dispatch_remove_error_event(self, tag_event:DimensionsTagEvent):
+        """
+        Publishes event in case of tag remove handling failure
+
+        Positional arguments:
+        tag_event -- DimensionsTagEvent the event which triggered the failure 
+        """
+        pub.sendMessage("handler_response.remove.error", tag_event=tag_event)

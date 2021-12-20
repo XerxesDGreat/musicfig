@@ -2,8 +2,8 @@
 
 import requests
 
-class Requests():
-    def post(endpoint, message):
+class PostMixin():
+    def post_json(self, endpoint, message=None):
         response = requests.post(
             endpoint,
             json=message,

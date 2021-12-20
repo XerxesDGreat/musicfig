@@ -44,6 +44,7 @@ class MainLoop(threading.Thread):
         pub.subscribe(self.on_tag_added_error, "handler_response.add.error")
         pub.subscribe(self.on_tag_added_success, "handler_response.add.success")
         pub.subscribe(self.on_tag_removed_success, "handler_response.remove.success")
+        pub.subscribe(self.on_tag_removed_error, "handler_response.remove.error")
     
     def stop_loop(self):
         """ Sets a flag to stop the loop. Note that the loop will stop after the current iteration"""
@@ -144,6 +145,16 @@ class MainLoop(threading.Thread):
         self.dimensions.fade_pad_color(pad=tag_event.pad_num, pulse_time=10,
                                        pulse_count=1, colour=self.get_idle_color())
         self.logger.debug("tag response event handled: %s", tag_event)
+
+    def on_tag_removed_error(self, tag_event: DimensionsTagEvent):
+        """
+        Handler for when processing a tag removal emits an error event
+
+        Positional arguments:
+        tag_event -- DimensionsTagEvent containing details about the event
+        """
+        self.logger.debug("tag response event handled: %s", tag_event)
+        self.error_flash(tag_event.pad_num)
 
     ###############################
     # Color handling

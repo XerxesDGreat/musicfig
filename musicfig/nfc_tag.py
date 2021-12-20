@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from ctypes import ArgumentError
 import json
 import logging
 import os
@@ -10,10 +9,9 @@ import yaml
 
 from .socketio import socketio
 from .models import db, NFCTagModel
-from flask import Blueprint, request, render_template, \
-                  flash, g, session, redirect, url_for, \
-                  current_app
-from musicfig import colors, webhook
+from .webhook import PostMixin
+from flask import current_app
+from musicfig import colors
 from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
@@ -74,7 +72,10 @@ class NFCTag():
         return True
 
 
-class UnknownTag(NFCTag):
+class UnregisteredTag(NFCTag):
+    """
+    This is used for tags which have not been added to the database
+    """
     def on_add(self):
         super().on_add()
         # should _probably_ use a logger which is associated with the
@@ -86,32 +87,20 @@ class UnknownTag(NFCTag):
         return colors.RED
 
 
-class LegacyTag(NFCTag):
+class UnknownTypeTag(NFCTag):
+    """
+    This is used in cases where tags are persisted to the database but then a plugin is removed
+    or unregistered; those orphan tags will be represented by this type
+    """
+
+    def get_pad_color(self):
+        return colors.RED
+
     def should_use_class_based_execution(self):
         return False
 
 
-class WebhookMixin():
-    def _post_to_url(self, url, request_body={}):
-        try:
-            return webhook.Requests.post(url, request_body)
-        except BaseException as e:
-            logger.exception("Failed to execute webhook")
-
-
-class WebhookTag(NFCTag, WebhookMixin):
-    required_attributes = ["url"]
-
-    def _init_attributes(self):
-        super()._init_attributes()
-        self.webhook_url = self.attributes["url"]
-        
-    def on_add(self):
-        super().on_add()
-        self._post_to_url(self.webhook_url)
-
-
-class SlackTag(NFCTag, WebhookMixin):
+class SlackTag(NFCTag, PostMixin):
     required_attributes = ["text"]
     
     def _init_attributes(self):
@@ -121,24 +110,7 @@ class SlackTag(NFCTag, WebhookMixin):
     
     def on_add(self):
         super().on_add()
-        self._post_to_url(self.webhook_url, {"text": self.text})
-
-
-# class SpotifyTag(NFCTag):
-#     required_attributes = ["spotify_uri"]
-
-#     def _init_attributes(self):
-#         super()._init_attributes()
-#         self.spotify_uri = self.attributes["spotify_uri"]
-#         try:
-#             self.start_position_ms = int(self.attributes.get("start_position_ms", 0))
-#         except ValueError as e:
-#             logging.warning("invalid value [%s] found in start position config")
-#             self.start_position_ms = 0
-
-
-#     def should_use_class_based_execution(self):
-#         return False
+        self.post_json(self.webhook_url, {"text": self.text})
 
 
 class NFCTagStore():
@@ -217,7 +189,6 @@ class NFCTagStore():
 
 TAG_REGISTRY_MAP = {
     "slack": SlackTag,
-    "webhook": WebhookTag,
 }
 
 def register_tag_type(nfc_tag_class):
@@ -270,7 +241,7 @@ class NFCTagManager():
         # TODO build a composite tag in case we want to do e.g. spotify + webhook;
         # perhaps do a list of types or something?
 
-        nfc_tag_class = TAG_REGISTRY_MAP.get(nfc_tag_model.type, LegacyTag)
+        nfc_tag_class = TAG_REGISTRY_MAP.get(nfc_tag_model.type, UnknownTypeTag)
         return nfc_tag_class(nfc_tag_model.id,
                              name=nfc_tag_model.name,
                              description=nfc_tag_model.description,
@@ -288,7 +259,7 @@ class NFCTagManager():
             nfc_tag_model = NFCTagStore.get_nfc_tag_by_id(id)
             
             if nfc_tag_model is None:
-                nfc_tag = UnknownTag(id)
+                nfc_tag = UnregisteredTag(id)
             else:
                 nfc_tag = self.nfc_tag_from_model(nfc_tag_model)
             logger.debug("built tag of type %s from info %s", type(nfc_tag), nfc_tag_model)
@@ -309,9 +280,9 @@ class NFCTagManager():
 
     def create_nfc_tag(self, id, tag_type, name=None, description=None, attributes=None):
         if id is None or tag_type is None:
-            raise ArgumentError("must include both id and tag_type")
+            raise ValueError("must include both id and tag_type")
         if tag_type not in TAG_REGISTRY_MAP:
-            raise ArgumentError("tag_type was %s, must be one of the following: [%s]",
+            raise ValueError("tag_type was %s, must be one of the following: [%s]",
                                 tag_type, "],[".join(TAG_REGISTRY_MAP.keys()))
         if isinstance(attributes, dict):
             attributes = json.dumps(dict)

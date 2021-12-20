@@ -87,7 +87,6 @@ class SpotifyPlugin(BasePlugin):
 
         self.logger.info('To activate Spotify visit: %s' % self.redirect_uri.replace('callback',''))
 
-    
     def get_client_id(self):
         return self.credentials.client_id
 
