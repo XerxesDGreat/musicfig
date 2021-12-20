@@ -8,7 +8,7 @@ from flask import \
     render_template, \
     request, \
     session
-from ..plugins.music import spotify_client
+from ..plugins.spotify import spotify_client
 
 logger = logging.getLogger(__name__)
 

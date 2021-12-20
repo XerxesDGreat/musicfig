@@ -18,7 +18,7 @@ from musicfig import colors, webhook
 from pathlib import Path
 from sqlalchemy import func
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("musicfig")
 
 # all uses of current_app in here are for config; try just passing those
 # config values, mayhap?
@@ -41,6 +41,7 @@ class NFCTag():
         self.name = name
         self.description = description
         self.attributes = attributes
+        self.logger = logging.getLogger("musicfig")
         self._init_attributes()
     
     def _init_attributes(self):
@@ -124,121 +125,6 @@ class SlackTag(NFCTag, WebhookMixin):
         super().on_add()
         self._post_to_url(self.webhook_url, {"text": self.text})
 
-
-class TwinklyTag(NFCTag):
-    control_interface = None
-    required_attributes = ["pattern"]
-    DEFAULT_FPS = 30
-    
-    def _init_attributes(self):
-        super()._init_attributes()
-        self.pattern_dir = current_app.config.get("TWINKLY_PATTERN_DIR",
-            os.path.join("..", "assets", "twinkly_patterns"))
-        a = current_app.config.get("TWINKLY_PATTERN_DIR")
-        logger.info(a)
-        self.pattern = self.attributes["pattern"]
-        self.fps = TwinklyTag.DEFAULT_FPS
-        try:
-            self.fps = int(self.attributes.get("fps", TwinklyTag.DEFAULT_FPS))
-        except ValueError as e:
-            logger.warning("bad value in 'fps' attribute on '%s': [%s]; number expected", self.pattern, self.attributes.get("fps"))
-
-
-    def _get_control_interface(self):
-        if TwinklyTag.control_interface is not None:
-            return TwinklyTag.control_interface
-        
-        ip_address = current_app.config.get("TWINKLY_IP_ADDRESS")
-        mac_address = current_app.config.get("TWINKLY_MAC_ADDRESS")
-        if ip_address and mac_address:
-            TwinklyTag.control_interface = xled.ControlInterface(ip_address, mac_address)
-        else:
-            logger.warning("Need config values to initialize Twinkly")
-
-        return TwinklyTag.control_interface
-
-    def _get_pattern_file(self):
-        pattern_file = os.path.join(self.pattern_dir, self.pattern)
-        if not os.path.isfile(pattern_file):
-            logger.warning("Requested pattern %s does not exist at %s", self.pattern, pattern_file)
-            return None
-        return pattern_file
-
-    def _get_delay_between_frames(self):
-        return int(1000 / self.fps)
-    
-    def on_add(self):
-        """
-        pattern is set tree mode to off, send movie, update effects settings, and set tree mode to on
-        """
-        logger.debug("Twinkly - requested pattern %s", self.pattern)
-        pattern_file = self._get_pattern_file()
-        if pattern_file is None:
-            return
-
-        # testing
-        if random.randint(0, 4) == 2:
-            raise NFCTagOperationError("just testing brah, it's only a prank")
-
-        # we'll need these for calculations
-        try:
-            num_leds = int(self._try_network_operation('get_device_info', verify_keys=["number_of_led"])["number_of_led"])
-        except ValueError as e:
-            logger.exception("bad value for number_of_led")
-            raise NFCTagOperationError("bad value for number_of_led")
-            
-        bytes_per_frame = num_leds * 3
-
-        # do the tree
-        self._try_network_operation("set_mode", call_args=["off"])
-        with open(pattern_file, 'rb') as f:
-            response = self._try_network_operation("set_led_movie_full", call_args=[f])
-
-            # also need the size of the file
-            num_frames = response.data.get("frames_number")
-
-        # calc num frames
-        if num_frames is None:
-            file_size = os.path.getsize(pattern_file)
-            num_frames = int(file_size / bytes_per_frame)
-
-        call_args = [self._get_delay_between_frames(), num_frames, num_leds]
-        self._try_network_operation("set_led_movie_config", call_args=call_args)
-        self._try_network_operation("set_mode", call_args=["movie"])
-    
-
-    def _try_network_operation(self, operation, call_args=[], verify_keys=[]):
-        start = time.time()
-        control_interface = self._get_control_interface()
-        func = getattr(control_interface, operation)
-        try:
-            response = func(*call_args)
-        except Exception as e:
-            logger.error("failed network operation: %s", str(e))
-            response = None
-        
-        error = None
-        addl_info = {}
-        if response is None:
-            error = "Twinkly API call response is empty"
-        elif response.get("code") != 1000:
-            error = "Code returned was not 1000"
-            addl_info["code"] = response.get("code")
-            addl_info["response"] = response
-        else:
-            for k in verify_keys:
-                if response.get(k) is None:
-                    error = "Twinkly API call response did not contain required key"
-                    addl_info["key"] = k
-                    addl_info["response"] = response
-        
-        if error is not None:
-            msg = error + "; extra information: " + ", ".join(["%s=%s" % (k, v) for k, v in addl_info.items()])
-            raise NFCTagOperationError(msg)
-
-        end = time.time()
-        logger.info("operation %s took %s ms", operation, int((end - start) * 1000))
-        return response
 
 # class SpotifyTag(NFCTag):
 #     required_attributes = ["spotify_uri"]

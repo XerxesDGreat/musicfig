@@ -13,8 +13,6 @@ from pubsub import pub
 from tekore._convert import to_uri
 from tekore._error import HTTPError
 
-logger = logging.getLogger(__name__)
-
 ONE_MINUTE_IN_MS = 60 * 1000 # 60 seconds
 
 SpotifyClientConfig = namedtuple("SpotifyClientConfig", ["client_id", "client_secret", "redirect_uri"])
@@ -56,12 +54,8 @@ class SpotifyTag(NFCTag):
         try:
             self.start_position_ms = int(self.attributes.get("start_position_ms", 0))
         except ValueError as e:
-            logging.warning("invalid value [%s] found in start position config")
+            self.logger.warning("invalid value [%s] found in start position config")
             self.start_position_ms = 0
-
-
-    def should_use_class_based_execution(self):
-        return False
 
 
 class SpotifyClient:

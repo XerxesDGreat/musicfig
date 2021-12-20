@@ -41,6 +41,7 @@ dictConfig({
 })
 
 logging.getLogger('werkzeug').disabled = True
+print(__name__)
 logger = logging.getLogger(__name__)
 os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 
