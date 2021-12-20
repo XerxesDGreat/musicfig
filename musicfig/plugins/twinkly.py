@@ -215,3 +215,6 @@ class TwinklyPlugin(BasePlugin):
             return
         
         self.dispatch_remove_success_event(tag_event)
+
+
+twinkly_plugin = TwinklyPlugin()

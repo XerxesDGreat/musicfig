@@ -9,6 +9,8 @@ import time
 import xled
 import yaml
 
+from musicfig.plugins.twinkly import TwinklyPlugin
+
 from .socketio import socketio
 from .models import db, NFCTagModel
 from flask import Blueprint, request, render_template, \
@@ -18,7 +20,7 @@ from musicfig import colors, webhook
 from pathlib import Path
 from sqlalchemy import func
 
-logger = logging.getLogger("musicfig")
+logger = logging.getLogger(__name__)
 
 # all uses of current_app in here are for config; try just passing those
 # config values, mayhap?
@@ -322,7 +324,3 @@ class NFCTagManager():
         nfc_tag = self.nfc_tag_from_model(model_obj)
         self.tags[id] = nfc_tag
         return nfc_tag
-
-        
-
-        

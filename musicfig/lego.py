@@ -325,7 +325,7 @@ class DimensionsLoop(threading.Thread):
         with self.app.app_context():
             while self.do_loop:
                 if random.randint(1, 10000) == 0:
-                    self.l.info("loop")
+                    self.logger.info("loop")
                 
                 tag_event = self.dimensions.get_tag_event()
                 if tag_event is None:

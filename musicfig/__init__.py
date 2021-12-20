@@ -5,7 +5,7 @@ import logging
 from .database import db
 from .lego import DimensionsLoop
 from .socketio import socketio
-from .plugins.spotify import spotify_client
+from .plugins import spotify_client, twinkly_plugin
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
@@ -64,7 +64,8 @@ app_version = "heavy development"
 
 # this is where you will put all your plugins
 plugins = [
-    spotify_client
+    spotify_client,
+    twinkly_plugin
 ]
 
 #socketio = SocketIO()
