@@ -36,8 +36,7 @@ class NFCTag():
     
     @classmethod
     def _get_required_attributes(cls):
-        if hasattr(cls, 'required_attributes'):
-            return getattr(cls, 'required_attributes')
+        return cls.required_attributes if hasattr(cls, 'required_attributes') else []
     
     @classmethod
     def get_attributes_description(cls):
@@ -57,10 +56,9 @@ class NFCTag():
 
     def _verify_attributes(self):
         # unclear if this will work...
-        for required_attribute in self.__class__._get_required_attributes():
+        for required_attribute in self._get_required_attributes():
             if required_attribute not in self.attributes:
                 raise KeyError("missing required key '%s'" % required_attribute)
-        return []
     
     def get_type(self):
         return self.__class__.__name__.lower().replace("Tag", "")
