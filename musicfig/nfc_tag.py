@@ -219,8 +219,6 @@ class NFCTagStore():
 
 TAG_REGISTRY_MAP = {
     "slack": SlackTag,
-    #"spotify": SpotifyTag,
-    "twinkly": TwinklyTag,
     "webhook": WebhookTag,
 }
 
