@@ -85,6 +85,8 @@ class SpotifyPlugin(BasePlugin):
         self.credentials = tk.Credentials(self.client_id, self.client_secret, self.redirect_uri)
         self.client = tk.Spotify()
 
+        self.logger.info('To activate Spotify visit: %s' % self.redirect_uri.replace('callback',''))
+
     
     def get_client_id(self):
         return self.credentials.client_id

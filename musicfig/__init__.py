@@ -111,7 +111,5 @@ def init_app():
         socketio.on_namespace(NFCTagHandler())
 
         logger.info('Musicfig %s started.' % app_version)
-        if app.config['CLIENT_ID']:
-            logger.info('To activate Spotify visit: %s' % app.config['REDIRECT_URI'].replace('callback',''))
 
     return app
