@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 
-import logging
 import tekore as tk
 import unidecode
 
+from musicfig import colors
+
+from .base import BasePlugin
 from ..lego import Dimensions
 from ..models import db, Song
 from ..nfc_tag import NFCTag, register_tag_type
 from collections import namedtuple
-from flask import current_app
 from pubsub import pub
 from tekore._convert import to_uri
 from tekore._error import HTTPError
@@ -58,26 +59,16 @@ class SpotifyTag(NFCTag):
             self.start_position_ms = 0
 
 
-class SpotifyClient:
+class SpotifyPlugin(BasePlugin):
 
-    _client = None
-
-    @classmethod
-    def get_client(cls, client_config=None):
-        if cls._client is None:
-            cls._client = SpotifyClient(client_config)
-        return cls._client
-
-    def __init__(self, client_config=None):
+    def __init__(self):
+        super().__init__(SpotifyTag)
         self.current_user_id = None
         self.user_token_map = {"local": None} # `local` is apparently a special user with no token; keep it
-        self.config = client_config
         self.credentials = None
         self.client = None
         self.active_tag = None
         self.paused_tag = None
-        if client_config is not None:
-            self._init_client()
 
     ###############################
     # configuration, setup, initialization, registration operations
@@ -86,22 +77,14 @@ class SpotifyClient:
         return SpotifyClientConfig(app_config.get("CLIENT_ID"), app_config.get("CLIENT_SECRET"), app_config.get("REDIRECT_URI"))
 
     def init_app(self, app):
-        self.config = self._app_config_to_client_config(app.config)
-        self.logger = app.logger
-        self._init_client()
+        super().init_app(app)
 
-        # makes the core app aware of this type
-        register_tag_type(SpotifyTag)
-
-        self.register_event_listeners()
-
-    def register_event_listeners(self):
-        pub.subscribe(self.on_tag_added, "tag.added")
-        pub.subscribe(self.on_tag_removed, "tag.removed")
-
-    def _init_client(self):
-        self.credentials = tk.Credentials(self.config.client_id, self.config.client_secret, self.config.redirect_uri)
+        self.client_id = self._get_from_config_or_fail("SPOTIFY_CLIENT_ID")
+        self.client_secret = self._get_from_config_or_fail("SPOTIFY_CLIENT_SECRET")
+        self.redirect_uri = self._get_from_config_or_fail("SPOTIFY_REDIRECT_URI")
+        self.credentials = tk.Credentials(self.client_id, self.client_secret, self.redirect_uri)
         self.client = tk.Spotify()
+
     
     def get_client_id(self):
         return self.credentials.client_id
@@ -110,10 +93,10 @@ class SpotifyClient:
         return self.credentials.user_authorisation_url(scope=tk.scope.every)
 
     def is_activated(self):
-        return self.current_user_id is not None
+        return self.current_user_id is not None and self.credentials is not None
     
-    def is_configured(self):
-        return self.config is not None and self.get_client_id() is not None
+    def _get_success_pad_color(self):
+        return colors.BLUE
 
     ###############################
     # User operations
@@ -136,7 +119,7 @@ class SpotifyClient:
     
     def set_current_user_id(self, user):
         self.current_user_id = user
-        self.logger.info(self.current_user_id)
+        self.logger.debug(self.current_user_id)
     
     def get_user_token_for_code(self, code):
         return self.credentials.request_user_token(code)
@@ -147,15 +130,20 @@ class SpotifyClient:
         self.user_token_map[user.id] = token
         return user
     
-    ###############################
-    # Playback operations
-    ###############################
-    def get_currently_playing(self):
-        currently_playing = self.get_current_users_current_playing()
-        if currently_playing is None or currently_playing.item is None:
-            return None, None
+    def _get_token_and_verify_active(self):
+        if not self.is_activated():
+            return
+        
+        token = self.get_current_user_token()
+        if token is None:
+            self.logger.error("No Spotify token found")
+            return
 
-        return self._get_song_from_track(currently_playing.item), currently_playing
+        return token 
+    
+    ###############################
+    # Object operations
+    ###############################
     
     def _get_song_from_track(self, track):
         """
@@ -182,6 +170,16 @@ class SpotifyClient:
         db.session.commit()
         return song
     
+    ###############################
+    # Playback operations
+    ###############################
+    def get_currently_playing(self):
+        currently_playing = self.get_current_users_current_playing()
+        if currently_playing is None or currently_playing.item is None:
+            return None, None
+
+        return self._get_song_from_track(currently_playing.item), currently_playing
+    
     def get_current_users_current_playing(self):
         token = self.get_current_user_token()
         with self.client.token_as(token):
@@ -195,20 +193,9 @@ class SpotifyClient:
             return None
 
         return currently_playing if currently_playing is not None and currently_playing.is_playing else None
-    
-    def _get_token_and_verify_active_and_configured(self):
-        if not self.is_activated() or not self.is_configured():
-            return
-        
-        token = self.get_current_user_token()
-        if token is None:
-            self.logger.error("No Spotify token found")
-            return
-
-        return token 
 
     def pause(self):
-        token = self._get_token_and_verify_active_and_configured()
+        token = self._get_token_and_verify_active()
         if token is None:
             return
         
@@ -219,7 +206,7 @@ class SpotifyClient:
                 self.logger.exception("Failed pausing playback: %s", str(e))
     
     def resume(self):
-        token = self._get_token_and_verify_active_and_configured()
+        token = self._get_token_and_verify_active()
         if token is None:
             return
         
@@ -230,10 +217,7 @@ class SpotifyClient:
                 song, currently_playing = self.get_currently_playing()
                 ms_remaining_in_song = song.duration_ms - currently_playing.progress_ms
             except HTTPError as e:
-                logger.exception("Failed resuming playback: %s", str(e))
-                logger.info("finding more devices")
-                devices = self.client.playback_devices()
-                logger.info(devices)
+                self.logger.exception("Failed resuming playback: %s", str(e))
 
         return ms_remaining_in_song
     
@@ -242,7 +226,7 @@ class SpotifyClient:
         Returns the duration in ms... or at least, attempts to. If it's not a song,
         just returns one minute
         """
-        token = self._get_token_and_verify_active_and_configured()
+        token = self._get_token_and_verify_active()
         if token is None:
             return
         media_type, media_id = spotify_uri.split(":")
@@ -295,25 +279,28 @@ class SpotifyClient:
         """
         What to do when a tag event we're subscribed to comes in
         """
+        super().on_tag_added(tag_event, nfc_tag)
+
         if not isinstance(nfc_tag, SpotifyTag):
             return
 
         if tag_event.pad_num != Dimensions.CIRCLE_PAD:
-            pub.sendMessage("handler_response.add.error", tag_event=tag_event)
+            self.dispatch_add_error_event(tag_event)
         else:
             self.start_playback_from_tag(nfc_tag)
-            pub.sendMessage("handler_response.add.success", tag_event=tag_event, color=nfc_tag.get_pad_color())
+            self.dispatch_add_success_event(tag_event)
 
     def on_tag_removed(self, tag_event, nfc_tag: NFCTag):
         """
         What to do when a tag event we're subscribed to comes in
         """
+        super().on_tag_removed(tag_event, nfc_tag)
+
         if not isinstance(nfc_tag, SpotifyTag) or tag_event.pad_num != Dimensions.CIRCLE_PAD:
             return
         
         self.pause_playback_from_tag(nfc_tag)
 
-        pub.sendMessage("handler_response.remove.success", tag_event=tag_event)
-    
+        self.dispatch_remove_success_event(tag_event)
 
-spotify_client = SpotifyClient()
+spotify_client = SpotifyPlugin()

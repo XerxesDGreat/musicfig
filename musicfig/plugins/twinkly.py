@@ -41,20 +41,17 @@ class TwinklyPlugin(BasePlugin):
     # configuration, setup, initialization, registration operations
     ###############################
     def init_app(self, app):
+        """
+        Build Twinkly interface along with other setup from `BasePlugin.init_app`
+
+        Raises PluginError if the config is not defined properly
+        """
         super().init_app(app)
 
-        self.pattern_dir = app.config.get("TWINKLY_PATTERN_DIR")
-        if self.pattern_dir is None:
-            raise ValueError("Must define TWINKLY_PATTERN_DIR as the dir in which patterns are stored in config")
-        
-        self.ip_address = app.config.get("TWINKLY_IP_ADDRESS")
-        if self.ip_address is None:
-            raise ValueError("Must define TWINKLY_IP_ADDRESS for the twinkly device in config")
-        
-        self.mac_address = app.config.get("TWINKLY_MAC_ADDRESS")
-        if self.mac_address is None:
-            raise ValueError("Must define TWINKLY_MAC_ADDRESS for the twinkly device in config")
-        
+        # maybe get rid of magic constants?
+        self.pattern_dir = self._get_from_config_or_fail("TWINKLY_PATTERN_DIR")
+        self.ip_address = self._get_from_config_or_fail("TWINKLY_IP_ADDRESS")
+        self.mac_address = self._get_from_config_or_fail("TWINKLY_MAC_ADDRESS")
         self.control_interface = xled.ControlInterface(self.ip_address, self.mac_address)
     
 

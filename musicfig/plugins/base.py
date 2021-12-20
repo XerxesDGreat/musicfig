@@ -4,6 +4,9 @@ from ..lego import DimensionsTagEvent
 from ..nfc_tag import NFCTag, register_tag_type
 from pubsub import pub
 
+class PluginError(BaseException):
+    pass
+
 class BasePlugin:
     """
     Base class for implementing plugins
@@ -54,9 +57,26 @@ class BasePlugin:
         Positional arguments:
         app -- a Flask application context object (or proxy)
         """
+        self.app = app
         self.logger = app.logger
         self.register_event_listeners()
         self.register_tag_class()
+    
+    def _get_from_config_or_fail(self, config_key):
+        """
+        Helper function for getting a single key from the provided config
+
+        Yes, we know that we could just let the caller access the key in config themselves
+        and thus raise a KeyError, but this way we can do a more homogenous error which is
+        easier to catch, plus we can do some help as to how to prevent future failure
+
+        Positional arguments:
+        config_key -- which key we're looking for
+        """
+        value = self.app.config.get(config_key)
+        if value is None:
+            raise PluginError("Must define %s in config" % config_key)
+        return value
     
     def register_event_listeners(self):
         """
