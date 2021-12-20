@@ -76,7 +76,7 @@ class TwinklyPlugin(BasePlugin):
         try:
             num_leds = int(self._try_network_operation('get_device_info', verify_keys=["number_of_led"])["number_of_led"])
         except ValueError as e:
-            logger.exception("bad value for number_of_led")
+            self.logger.exception("bad value for number_of_led")
             raise NFCTagOperationError("bad value for number_of_led")
             
         bytes_per_frame = num_leds * 3
@@ -114,7 +114,7 @@ class TwinklyPlugin(BasePlugin):
         """
         pattern_file = os.path.join(self.pattern_dir, pattern)
         if not os.path.isfile(pattern_file):
-            logger.warning("Requested pattern %s does not exist at %s", pattern, pattern_file)
+            self.logger.warning("Requested pattern %s does not exist at %s", pattern, pattern_file)
             return None
         return pattern_file
 
@@ -159,7 +159,7 @@ class TwinklyPlugin(BasePlugin):
         try:
             response = func(*call_args)
         except Exception as e:
-            logger.error("failed network operation: %s", str(e))
+            self.logger.error("failed network operation: %s", str(e))
             response = None
         
         error = None
@@ -182,7 +182,7 @@ class TwinklyPlugin(BasePlugin):
             raise NFCTagOperationError(msg)
 
         end = time.time()
-        logger.info("operation %s took %s ms", operation, int((end - start) * 1000))
+        self.logger.info("operation %s took %s ms", operation, int((end - start) * 1000))
         return response
 
 
@@ -196,7 +196,7 @@ class TwinklyPlugin(BasePlugin):
             return
 
         try:
-            self.start_pattern(nfc_tag.pattern)
+            self._start_pattern(nfc_tag.pattern)
         except NFCTagOperationError as e:
             self.logger.exception("failed switching operation")
             self.dispatch_add_error_event(tag_event)

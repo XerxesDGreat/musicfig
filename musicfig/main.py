@@ -70,6 +70,7 @@ class MainLoop(threading.Thread):
                     self.update_active_tags(tag_event, nfc_tag)
                     self.publish_tag_event(tag_event, nfc_tag)
                 except Exception as e:
+                    self.logger.exception("encountered exception trying to do tag stuff")
                     self.error_flash(tag_event.pad_num)
     
     def publish_tag_event(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag):
