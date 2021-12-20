@@ -2,9 +2,9 @@
 import os
 import logging
 
-from . import plugins
 from .database import db
 from .main import MainLoop
+from .plugins import spotify_client, webhook_plugin, twinkly_plugin
 from .socketio import socketio
 from flask import Flask, render_template
 from flask_socketio import SocketIO
@@ -64,9 +64,9 @@ app_version = "heavy development"
 
 # this is where you will put all your plugins
 registered_plugins = [
-    plugins.spotify_client,
-    plugins.twinkly_plugin,
-    plugins.webhook_plugin
+    spotify_client,
+    twinkly_plugin,
+    webhook_plugin
 ]
 
 #socketio = SocketIO()
