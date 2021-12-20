@@ -29,8 +29,20 @@ class NFCTag():
         hacky - but effective - way to get the friendly name of this class.
 
         Brittle because it assumes the class name ends in "Tag"
+
+        Override if not working
         """
         return cls.__name__[0:-3].lower()
+    
+    @classmethod
+    def _get_required_attributes(cls):
+        if hasattr(cls, 'required_attributes'):
+            return getattr(cls, 'required_attributes')
+    
+    @classmethod
+    def get_attributes_description(cls):
+        json_content = ",".join(['"%s": "..."' % att for att in cls._get_required_attributes()])
+        return "{%s}" % json_content
 
     def __init__(self, identifier, name=None, description=None, attributes={}, **kwargs):
         self.identifier = identifier
@@ -44,13 +56,10 @@ class NFCTag():
         self._verify_attributes()
 
     def _verify_attributes(self):
-        for required_attribute in self._get_required_attributes():
+        # unclear if this will work...
+        for required_attribute in self.__class__._get_required_attributes():
             if required_attribute not in self.attributes:
                 raise KeyError("missing required key '%s'" % required_attribute)
-    
-    def _get_required_attributes(self):
-        if hasattr(self, 'required_attributes'):
-            return getattr(self, 'required_attributes')
         return []
     
     def get_type(self):

@@ -3,9 +3,8 @@ from json.decoder import JSONDecodeError
 import logging
 
 from . import web
-from ..nfc_tag import NFCTagStore, NFCTagManager
+from ..nfc_tag import NFCTagStore, NFCTagManager, TAG_REGISTRY_MAP
 from flask import \
-    current_app, \
     redirect, \
     render_template, \
     request, \
@@ -27,7 +26,10 @@ def tag_list():
 @web.route("/tags/create", methods=["GET"])
 def tag_create_form():
     new_tag_id = request.args.get("tag_id")
-    return render_template("create_tag.html", tag_id=new_tag_id)
+    tag_names = TAG_REGISTRY_MAP.keys()
+    tag_descriptions_by_name = {(k, v.get_attributes_description()) for k, v in TAG_REGISTRY_MAP.items()}
+    return render_template("create_tag.html", tag_id=new_tag_id, tag_names=tag_names,
+                           tag_descriptions_by_name=tag_descriptions_by_name)
 
 @web.route("/tags/create", methods=["POST"])
 def create_tag():
