@@ -68,6 +68,7 @@ class TwinklyPlugin(BasePlugin):
         pattern -- string representing a file on the musicfig device
         """
         self.logger.debug("Twinkly - requested pattern %s", twinkly_tag.pattern)
+
         pattern_file = self._get_file_path_for_pattern(twinkly_tag.pattern)
         if pattern_file is None:
             return
@@ -196,7 +197,7 @@ class TwinklyPlugin(BasePlugin):
             return
 
         try:
-            self._start_pattern(nfc_tag.pattern)
+            self._start_pattern(nfc_tag)
         except NFCTagOperationError as e:
             self.logger.exception("failed switching operation")
             self.dispatch_add_error_event(tag_event)
