@@ -3,7 +3,7 @@ import os
 import logging
 
 from .database import db
-from .lego import DimensionsLoop
+from .main import MainLoop
 from .socketio import socketio
 from .plugins import spotify_client, twinkly_plugin
 from flask import Flask, render_template
@@ -69,7 +69,7 @@ plugins = [
 ]
 
 #socketio = SocketIO()
-lego_thread = DimensionsLoop()
+lego_thread = MainLoop()
 
 from . import models
 #from . import events

@@ -4,12 +4,9 @@ from ctypes import ArgumentError
 import json
 import logging
 import os
-import random
 import time
-import xled
 import yaml
 
-from musicfig.plugins.twinkly import TwinklyPlugin
 
 from .socketio import socketio
 from .models import db, NFCTagModel
@@ -17,7 +14,6 @@ from flask import Blueprint, request, render_template, \
                   flash, g, session, redirect, url_for, \
                   current_app
 from musicfig import colors, webhook
-from pathlib import Path
 from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
