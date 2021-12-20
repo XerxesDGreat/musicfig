@@ -155,8 +155,7 @@ class TwinklyPlugin(BasePlugin):
         a None response.
         """
         start = time.time()
-        control_interface = self._get_control_interface()
-        func = getattr(control_interface, operation)
+        func = getattr(self.control_interface, operation)
         try:
             response = func(*call_args)
         except Exception as e:
