@@ -20,6 +20,16 @@ class TwinklyTag(NFCTag):
         except ValueError as e:
             self.logger.warning("bad value in 'fps' attribute on '%s': [%s]; number expected", self.pattern, self.attributes.get("fps"))
             self.fps = TwinklyTag.DEFAULT_FPS
+        
+    def get_ms_per_frame(self):
+        """
+        Fetches the number of frames per second converted to the number of milliseconds per frame
+
+        Returns:
+        int-cast number of ms per frame (e.g. 33 instead of 33.333333 for fps of 30)
+        """
+        return int(1000 / self.fps)
+
 
 class TwinklyPlugin(BasePlugin):
 
@@ -95,7 +105,7 @@ class TwinklyPlugin(BasePlugin):
             file_size = os.path.getsize(pattern_file)
             num_frames = int(file_size / bytes_per_frame)
 
-        call_args = [self._fps_to_ms_per_frame(twinkly_tag.fps), num_frames, num_leds]
+        call_args = [twinkly_tag.get_ms_per_frame(), num_frames, num_leds]
         self._try_network_operation("set_led_movie_config", call_args=call_args)
         self._try_network_operation("set_mode", call_args=["movie"])
 
@@ -118,19 +128,6 @@ class TwinklyPlugin(BasePlugin):
             self.logger.warning("Requested pattern %s does not exist at %s", pattern, pattern_file)
             return None
         return pattern_file
-
-
-    def _fps_to_ms_per_frame(self, fps):
-        """
-        Converts the number of frames per second into the number of milliseconds per frame
-
-        Positional arguments:
-        fps -- int how many frames per second (e.g. 30)
-
-        Returns:
-        int-cast number of ms per frame (e.g. 33)
-        """
-        return int(1000 / self.fps)
     
 
     def _try_network_operation(self, operation, call_args=[], verify_keys=[]):
