@@ -17,11 +17,12 @@ class UnregisteredTagPlugin(BasePlugin):
     yet registered
     """
 
+    TAG_CLASS = UnregisteredTag
+
     def __init__(self):
         super().__init__(UnregisteredTag)
     
-    def on_tag_added(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag):
-        super().on_tag_added(tag_event, nfc_tag)
+    def _on_tag_added(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag):
 
         # should _probably_ use a logger which is associated with the
         # app, but this is fine for now. Maybe

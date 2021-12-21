@@ -1,7 +1,7 @@
 from ctypes import ArgumentError
 from musicfig import colors
 from ..lego import DimensionsTagEvent
-from ..nfc_tag import NFCTag, register_tag_type
+from ..nfc_tag import NFCTag, NFCTagOperationError, register_tag_type
 from pubsub import pub
 
 class PluginError(BaseException):
@@ -33,16 +33,13 @@ class BasePlugin:
     but one _could_ do it.
     """
 
-    def __init__(self, tag_class):
+    def __init__(self):
         """
         Base initializer which must be overridden for proper functioning
-
-        Positional arguments:
-        tag_class -- a class object which extends NFCTag. Can be None if pairing
-                     with a tag type is undesirable.
         """
+        tag_class = getattr(self, "TAG_CLASS") if hasattr(self, "TAG_CLASS") else None
         if tag_class is not None and not issubclass(tag_class, NFCTag):
-            raise ArgumentError("`tag_class` must extend nfc_tag.NFCTag")
+            raise ArgumentError("if defined, `tag_class` must extend nfc_tag.NFCTag")
         self.tag_class = tag_class
 
     def init_app(self, app):
@@ -96,9 +93,101 @@ class BasePlugin:
         if self.tag_class is not None:
             register_tag_type(self.tag_class)
 
-    def on_tag_added(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag):
+    def _get_success_pad_color(self):
+        """ Returns the int tuple color (R, G, B) the pad should turn upon a tag add success """
+        return colors.PURPLE
+
+    ############################
+    # Event Handlers - Do not override
+    ############################
+    def on_tag_added(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag) -> None:
         """
         Handler for when tags get added.
+
+        This method is the core logistical functionality of this event handler; thus it should
+        not be overridden. To customize what happens when a tag event comes in, customize
+        `_on_tag_added` instead.
+
+        If a tag type is registered, this method will filter out any events without that tag
+        type before passing it into the logic handler.
+
+        If the logic handler raises an NFCTagOperationError, it will be caught and dispatch
+        an error event; otherwise it will dispatch a success event.
+
+        Positional arguments:
+        tag_event -- DimensionsTagEvent object contains information about the tag adding event
+        nfc_tag -- NFCTag object representing the tag which was added
+        """
+        self._on_tag_event(tag_event=tag_event, nfc_tag=nfc_tag, work_operation=self._on_tag_added,
+                           success_event_dispatcher=self.dispatch_add_success_event,
+                           error_event_dispatcher=self.dispatch_add_error_event)
+    
+    def on_tag_removed(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag) -> None:
+        """
+        Handler for when tags get removed.
+        
+        This method is the core logistical functionality of this event handler; thus it should
+        not be overridden. To customize what happens when a tag event comes in, customize
+        `_on_tag_removed` instead.
+
+        If a tag type is registered, this method will filter out any events without that tag
+        type before passing it into the logic handler.
+
+        If the logic handler raises an NFCTagOperationError, it will be caught and dispatch
+        an error event; otherwise it will dispatch a success event.
+
+        Positional arguments:
+        tag_event -- DimensionsTagEvent object contains information about the tag adding event
+        nfc_tag -- NFCTag object representing the tag which was added
+        """
+        self._on_tag_event(tag_event=tag_event, nfc_tag=nfc_tag, work_operation=self._on_tag_removed,
+                           success_event_dispatcher=self.dispatch_remove_success_event,
+                           error_event_dispatcher=self.dispatch_remove_error_event)
+    
+    def _on_tag_event(self,
+                     tag_event: DimensionsTagEvent,
+                     nfc_tag: NFCTag,
+                     work_operation,
+                     success_event_dispatcher, 
+                     error_event_dispatcher):
+        """
+        Generic event handling operations; exists because DRY.
+
+        For details about what it does, read on_tag_added or on_tag_removed
+        
+        Positional arguments:
+        tag_event -- DimensionsTagEvent object contains information about the tag adding event
+        nfc_tag -- NFCTag object representing the tag which was added
+        work_operation -- callable for the event handling to be done
+        success_event_dispatcher -- callable for dispatching a success event
+        error_event_dispatcher -- callable for dispatching an error event
+        """
+        if not isinstance(nfc_tag, self.tag_class):
+            return
+        
+        try:
+            work_operation(tag_event, nfc_tag)
+        except NFCTagOperationError as e:
+            self.logger.exception("%s failed; tag_event: %s, nfc_tag: %s", work_operation.__name__, tag_event, nfc_tag)
+            error_event_dispatcher(tag_event)
+        else:
+            success_event_dispatcher(tag_event)
+
+
+    ############################
+    # Customizable Event Handlers
+    ############################
+    def _on_tag_added(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag) -> None:
+        """
+        Customizable handler for when tags get added
+
+        This method should include the business logic of what happens when a tag is added.
+
+        If a tag type is registered for this plugin, only events with that tag type will
+        get into this method. 
+
+        If this method raises an NFCTagOperationError, an error event will be dispatched; else
+        a success event will be dispatched
 
         -- CAUTION --
         As with any Observer system, the event which is passed in here does not stop here; it
@@ -117,10 +206,18 @@ class BasePlugin:
         nfc_tag -- NFCTag object representing the tag which was added
         """
         pass
-    
-    def on_tag_removed(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag):
+
+    def _on_tag_removed(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag) -> None:
         """
-        Handler for when tags get removed.
+        Customizable handler for when tags get added
+
+        This method should include the business logic of what happens when a tag is added.
+
+        If a tag type is registered for this plugin, only events with that tag type will
+        get into this method. 
+
+        If this method raises an NFCTagOperationError, an error event will be dispatched; else
+        a success event will be dispatched
 
         -- CAUTION --
         As with any Observer system, the event which is passed in here does not stop here; it
@@ -140,10 +237,10 @@ class BasePlugin:
         """
         pass
 
-    def _get_success_pad_color(self):
-        """ Returns the int tuple color (R, G, B) the pad should turn upon a tag add success """
-        return colors.PURPLE
 
+    ############################
+    # Event Dispatchers
+    ############################
     def dispatch_add_error_event(self, tag_event: DimensionsTagEvent):
         """
         Publishes event in case of tag add handling failure

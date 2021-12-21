@@ -1,7 +1,7 @@
 from .base import BasePlugin, PluginError
 
 from ..lego import DimensionsTagEvent
-from ..nfc_tag import NFCTag
+from ..nfc_tag import NFCTag, NFCTagOperationError
 from ..webhook import PostMixin
 
 
@@ -24,41 +24,26 @@ class WebhookTag(NFCTag, PostMixin):
 
 
 class WebhookPlugin(BasePlugin, PostMixin):
+
+    TAG_CLASS = WebhookTag
+
     def __init__(self):
         super().__init__(WebhookTag)
     
-    def on_tag_added(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag):
-        super().on_tag_added(tag_event, nfc_tag)
-
-        if not isinstance(nfc_tag, WebhookTag):
-            return
-        
+    def _on_tag_added(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag):
         try:
             self.post_json(nfc_tag.added_url, nfc_tag.added_post_json)
         except Exception as e:
-            self.logger.exception("failed calling added webhook")
-            self.dispatch_add_error_event(tag_event)
-            return
-        
-        self.dispatch_add_success_event(tag_event)
+            raise NFCTagOperationError("Got exception (%s) calling add post hook: %s", e.__name__, str(e))
 
     
-    def on_tag_removed(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag):
-        super().on_tag_removed(tag_event, nfc_tag)
-
-        if not isinstance(nfc_tag, WebhookTag):
-            return
-
+    def _on_tag_removed(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag):
         if nfc_tag.removed_url is None:
             return
         
         try:
             self.post_json(nfc_tag.removed_url, nfc_tag.removed_post_json)
         except Exception as e:
-            self.logger.exception("failed calling removed webhook")
-            self.dispatch_remove_error_event(tag_event)
-            return
-        
-        self.dispatch_remove_success_event(tag_event)
+            raise NFCTagOperationError("Got exception (%s) calling remove post hook: %s", e.__name__, str(e))
 
 webhook_plugin = WebhookPlugin()

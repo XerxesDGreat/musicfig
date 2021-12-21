@@ -33,9 +33,7 @@ class TwinklyTag(NFCTag):
 
 class TwinklyPlugin(BasePlugin):
 
-    def __init__(self):
-        super().__init__(TwinklyTag)
-    
+    TAG_CLASS = TwinklyTag
 
     ###############################
     # configuration, setup, initialization, registration operations
@@ -183,32 +181,8 @@ class TwinklyPlugin(BasePlugin):
     ###############################
     # Event Listeners
     ###############################
-    def on_tag_added(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag):
-        super().on_tag_added(tag_event, nfc_tag)
-
-        if not isinstance(nfc_tag, TwinklyTag):
-            return
-
-        try:
-            self._start_pattern(nfc_tag)
-        except NFCTagOperationError as e:
-            self.logger.exception("failed switching operation")
-            self.dispatch_add_error_event(tag_event)
-            return
-        
-        self.dispatch_add_success_event(tag_event)
-
-
-    def on_tag_removed(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag):
-        """
-        For Twinkly, removing the tag does nothing
-        """
-        super().on_tag_removed(tag_event, nfc_tag)
-
-        if not isinstance(nfc_tag, TwinklyTag):
-            return
-        
-        self.dispatch_remove_success_event(tag_event)
+    def _on_tag_added(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag):
+        self._start_pattern(nfc_tag)
 
 
 twinkly_plugin = TwinklyPlugin()

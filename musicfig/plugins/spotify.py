@@ -8,7 +8,7 @@ from musicfig import colors
 from .base import BasePlugin
 from ..lego import Dimensions
 from ..models import db, Song
-from ..nfc_tag import NFCTag, register_tag_type
+from ..nfc_tag import NFCTag, NFCTagOperationError, register_tag_type
 from collections import namedtuple
 from pubsub import pub
 from tekore._convert import to_uri
@@ -60,6 +60,8 @@ class SpotifyTag(NFCTag):
 
 
 class SpotifyPlugin(BasePlugin):
+
+    TAG_CLASS = SpotifyTag
 
     def __init__(self):
         super().__init__(SpotifyTag)
@@ -276,32 +278,25 @@ class SpotifyPlugin(BasePlugin):
     ###############################
     # Event Listeners
     ###############################
-    def on_tag_added(self, tag_event, nfc_tag: NFCTag):
+    def _on_tag_added(self, tag_event, nfc_tag: NFCTag):
         """
         What to do when a tag event we're subscribed to comes in
         """
-        super().on_tag_added(tag_event, nfc_tag)
-
-        if not isinstance(nfc_tag, SpotifyTag):
-            return
-
         if tag_event.pad_num != Dimensions.CIRCLE_PAD:
-            self.dispatch_add_error_event(tag_event)
-        else:
+            raise NFCTagOperationError("Music tags only work on the circle pad")
+        
+        try:
             self.start_playback_from_tag(nfc_tag)
-            self.dispatch_add_success_event(tag_event)
+        except Exception as e:
+            raise NFCTagOperationError("Encountered exception (%s) starting spotify: %s", e.__name__, str(e))
 
-    def on_tag_removed(self, tag_event, nfc_tag: NFCTag):
+    def _on_tag_removed(self, tag_event, nfc_tag: NFCTag):
         """
         What to do when a tag event we're subscribed to comes in
         """
-        super().on_tag_removed(tag_event, nfc_tag)
-
-        if not isinstance(nfc_tag, SpotifyTag) or tag_event.pad_num != Dimensions.CIRCLE_PAD:
-            return
-        
-        self.pause_playback_from_tag(nfc_tag)
-
-        self.dispatch_remove_success_event(tag_event)
+        try:
+            self.pause_playback_from_tag(nfc_tag)
+        except Exception as e:
+            raise NFCTagOperationError("Encountered exception (%s) pausing spotify: %s", e.__name__, str(e))
 
 spotify_client = SpotifyPlugin()
