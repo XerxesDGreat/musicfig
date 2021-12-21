@@ -73,10 +73,10 @@ custom_plugins = [
 ]
 
 # leave these alone
-core_plugins = [
+registered_plugins = [
     unregistered_tag_plugin,
 ]
-registered_plugins = core_plugins.extend(custom_plugins)
+registered_plugins.extend(custom_plugins)
 
 #socketio = SocketIO()
 lego_thread = MainLoop()
