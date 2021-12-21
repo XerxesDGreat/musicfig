@@ -32,7 +32,7 @@
             </div>
             <div class="mb-3">
                 <label for="tag_type" class="form-label">Type</label>
-                <select id="tag_type" class="form-select" aria-describedby="typeHelp" name="tag_type">
+                <select id="tag_type" class="form-select" aria-describedby="typeHelp" name="tag_type" onchange="showTagAttributes(this)">
                     <option value="slack">Slack</option>
                     <option value="spotify">Spotify</option>
                     <option value="twinkly">Twinkly</option>
@@ -45,5 +45,33 @@
             </div>
             <button type="submit" class="btn btn-primary" onclick="this.form.submit(); this.disabled=true; this.value='Sending...'">Submit</button>
         </form>
+    <!--
+        <div id="names">
+        {% for n in tag_names %}
+            <div>{{ n }}</div>
+        {% endfor %}
+        </div>
+
+        <div id="mapping">
+        {% for k, v in tag_descriptions_by_name %}
+            <div>{{ k }}: {{ v }}</div>
+        {% endfor %}
+        </div>
+    -->
     </div>
+    <script type="text/javascript">
+        function showTagAttributes(selector) {
+            let attributeHints = [
+                "",
+                {% for k, v in tag_descriptions_by_name %}
+                "{{ v }}"{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ];
+
+            let selection = attributeHints[selector.selectedIndex];
+            if (selection != undefined && selection != "") {
+                document.getElementById("tag_attributes").innerHTML = selection;
+            }
+        }
+    </script>
 </body>
