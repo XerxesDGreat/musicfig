@@ -33,6 +33,7 @@
             <div class="mb-3">
                 <label for="tag_type" class="form-label">Type</label>
                 <select id="tag_type" class="form-select" aria-describedby="typeHelp" name="tag_type" onchange="showTagAttributes(this)">
+                    <option value="">Select a type</option>
                 {% for k, v in tag_descriptions_by_name %}
                     <option value="{{ k }}">{{ k | capitalize }}</option>
                 {% endfor %}
