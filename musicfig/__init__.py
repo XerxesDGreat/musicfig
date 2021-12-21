@@ -4,7 +4,10 @@ import logging
 
 from .database import db
 from .main import MainLoop
-from .plugins import spotify_client, webhook_plugin, twinkly_plugin
+from .plugins import spotify_client, \
+                     webhook_plugin, \
+                     twinkly_plugin, \
+                     unregistered_tag_plugin
 from .socketio import socketio
 from flask import Flask, render_template
 from flask_socketio import SocketIO
@@ -63,11 +66,17 @@ os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 app_version = "heavy development"
 
 # this is where you will put all your plugins
-registered_plugins = [
+custom_plugins = [
     spotify_client,
     twinkly_plugin,
-    webhook_plugin
+    webhook_plugin,
 ]
+
+# leave these alone
+core_plugins = [
+    unregistered_tag_plugin,
+]
+registered_plugins = core_plugins.extend(custom_plugins)
 
 #socketio = SocketIO()
 lego_thread = MainLoop()
