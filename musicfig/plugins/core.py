@@ -18,9 +18,6 @@ class UnregisteredTagPlugin(BasePlugin):
     """
 
     TAG_CLASS = UnregisteredTag
-
-    def __init__(self):
-        super().__init__(UnregisteredTag)
     
     def _on_tag_added(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag):
 

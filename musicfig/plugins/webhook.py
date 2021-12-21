@@ -26,9 +26,6 @@ class WebhookTag(NFCTag, PostMixin):
 class WebhookPlugin(BasePlugin, PostMixin):
 
     TAG_CLASS = WebhookTag
-
-    def __init__(self):
-        super().__init__(WebhookTag)
     
     def _on_tag_added(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag):
         try:

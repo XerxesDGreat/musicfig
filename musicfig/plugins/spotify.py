@@ -64,7 +64,7 @@ class SpotifyPlugin(BasePlugin):
     TAG_CLASS = SpotifyTag
 
     def __init__(self):
-        super().__init__(SpotifyTag)
+        super().__init__()
         self.current_user_id = None
         self.user_token_map = {"local": None} # `local` is apparently a special user with no token; keep it
         self.credentials = None
