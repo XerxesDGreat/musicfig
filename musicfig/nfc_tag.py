@@ -79,6 +79,21 @@ class NFCTag():
         return True
 
 
+class UnregisteredTag(NFCTag):
+    """
+    This is used for tags which have not been added to the database
+    """
+    def on_add(self):
+        super().on_add()
+        # should _probably_ use a logger which is associated with the
+        # app, but this is fine for now. Maybe
+        logger.info('Discovered new tag: %s' % self.identifier)
+        socketio.emit("new_tag", {"tag_id": self.identifier})
+
+    def get_pad_color(self):
+        return colors.RED
+
+
 class UnknownTypeTag(NFCTag):
     """
     This is used in cases where tags are persisted to the database but then a plugin is removed
