@@ -33,10 +33,9 @@
             <div class="mb-3">
                 <label for="tag_type" class="form-label">Type</label>
                 <select id="tag_type" class="form-select" aria-describedby="typeHelp" name="tag_type" onchange="showTagAttributes(this)">
-                    <option value="slack">Slack</option>
-                    <option value="spotify">Spotify</option>
-                    <option value="twinkly">Twinkly</option>
-                    <option value="webhook">Webhook</option>
+                {% for k, v in tag_descriptions_by_name %}
+                    <option value="{{ k }}">{{ k | capitalize }}</option>
+                {% endfor %}
                 </select>
             </div>
             <div class="mb-3">
