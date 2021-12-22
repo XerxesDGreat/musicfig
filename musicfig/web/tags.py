@@ -29,6 +29,7 @@ def tag_create_form():
     tag_registry_map = NFCTagManager.get_registered_tag_types()
     tag_names = tag_registry_map.keys()
     tag_descriptions_by_name = {(k, v.get_attributes_description()) for k, v in tag_registry_map.items()}
+    tag_descriptions_by_name = dict(sorted(tag_descriptions_by_name.items()))
     return render_template("create_tag.html", tag_id=new_tag_id, tag_names=tag_names,
                            tag_descriptions_by_name=tag_descriptions_by_name)
 

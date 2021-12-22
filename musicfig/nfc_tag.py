@@ -216,7 +216,7 @@ class NFCTagManager():
 
         Note 
         """
-        return dict(sorted(cls.TAG_REGISTRY_MAP.items()))
+        return cls.TAG_REGISTRY_MAP.items()
 
     def should_import_file(self):
         """
