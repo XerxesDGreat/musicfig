@@ -225,7 +225,7 @@ class Dimensions(BaseDimensions):
         """
         self.send_command([0x55, 0x09, 0xc3, 0x03, pad, 
                           on_length, off_length, pulse_count, 
-                          colour[0], colour[1], colour[1],])
+                          colour[0], colour[1], colour[2],])
 
     def get_tag_event(self):
         """
