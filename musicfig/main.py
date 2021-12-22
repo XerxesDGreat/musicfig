@@ -54,9 +54,43 @@ class MainLoop(threading.Thread):
         pub.subscribe(self.on_tag_being_processed, "handler_response.processing_started")
         pub.subscribe(self.on_tag_created, "tag_created")
     
-    def stop_loop(self):
-        """ Sets a flag to stop the loop. Note that the loop will stop after the current iteration"""
-        self.do_loop = False
+    def _try_to_connect(self):
+        try:
+            self.dimensions = FakeDimensions(self.app) if self.app.config.get("USE_MOCK_PAD") else Dimensions(self.app)
+        except Exception as e:
+            self.logger.warning("Failed to find dimensions pad")
+            time.sleep(4)
+    
+    def _do_app_logic(self):
+        if random.randint(1, 10000) == 0:
+            self.logger.info("loop")
+        
+        try:
+            tag_event = self.dimensions.get_tag_event()
+            self.dimensions.change_pad_color(Dimensions.ALL_PAD, self.get_idle_color())
+        except USBError as e:
+            # This most likely means the pad has been disconnected. Either way,
+            # we'll give it a chance to correct itself, but kill the process
+            # if the error doesn't seem to resolve
+            self.error_count = self.error_count + 1
+            if self.error_count < self.USB_ERROR_THRESHOLD:
+                self.logger.error("Perhaps disconnected; trying again after a bit...")
+                time.sleep(1)
+            else:
+                self.logger.error("Likely unrecoverable, assuming dead; stopping the loop")
+                # well, we tried a few times, kill the loop
+                self.dimensions = None
+
+        if tag_event is None:
+            return
+
+        try:
+            nfc_tag = self.nfc_tag_manager.get_nfc_tag_by_id(tag_event.identifier)
+            self.update_active_tags(tag_event, nfc_tag)
+            self.publish_tag_event(tag_event, nfc_tag)
+        except Exception as e:
+            self.logger.exception("encountered exception trying to do tag stuff")
+            self.error_flash(tag_event.pad_num)
 
     def run(self):
         """
@@ -64,37 +98,12 @@ class MainLoop(threading.Thread):
 
         Responsible for fetching events from the pad and handling them accordingly
         """
-        self.dimensions.change_pad_color(Dimensions.ALL_PAD, self.get_idle_color())
         with self.app.app_context():
             while self.do_loop:
-                if random.randint(1, 10000) == 0:
-                    self.logger.info("loop")
-                
-                try:
-                    tag_event = self.dimensions.get_tag_event()
-                except USBError as e:
-                    # This most likely means the pad has been disconnected. Either way,
-                    # we'll give it a chance to correct itself, but kill the process
-                    # if the error doesn't seem to resolve
-                    self.error_count = self.error_count + 1
-                    if self.error_count < self.USB_ERROR_THRESHOLD:
-                        self.logger.error("Perhaps disconnected; trying again after a bit...")
-                        time.sleep(1)
-                    else:
-                        self.logger.error("Likely unrecoverable, assuming dead; stopping the loop")
-                        # well, we tried a few times, kill the loop
-                        self.stop_loop()
-
-                if tag_event is None:
-                    continue
-
-                try:
-                    nfc_tag = self.nfc_tag_manager.get_nfc_tag_by_id(tag_event.identifier)
-                    self.update_active_tags(tag_event, nfc_tag)
-                    self.publish_tag_event(tag_event, nfc_tag)
-                except Exception as e:
-                    self.logger.exception("encountered exception trying to do tag stuff")
-                    self.error_flash(tag_event.pad_num)
+                if self.dimensions is not None:
+                    self._do_app_logic()
+                else:
+                    self._try_to_connect()
     
     def publish_tag_event(self, tag_event: DimensionsTagEvent, nfc_tag: NFCTag):
         """
