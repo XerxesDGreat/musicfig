@@ -240,6 +240,9 @@ class Dimensions(BaseDimensions):
             # it seems that this error happens every time you read if there is nothing
             # to read, thus we don't need to do any messaging about it
             return
+        except usb.core.USBError as e:
+            # this one we _do_ want to raise as it will help us with handling shutdown
+            raise e
         except Exception as e:
             self.logger.exception("encountered error while reading")
             return
