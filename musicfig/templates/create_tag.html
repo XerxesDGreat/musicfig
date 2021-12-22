@@ -57,7 +57,7 @@
             let attributeHints = [
                 "",
                 {% for k, v in tag_descriptions_by_name.items() %}
-                "{{ v }}"{% if not loop.last %},{% endif %}
+                "{{ v | replace('\n', '\\n') }}"{% if not loop.last %},{% endif %}
                 {% endfor %}
             ];
 
