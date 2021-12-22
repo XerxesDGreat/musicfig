@@ -1,10 +1,13 @@
 import random
 import threading
+import time
+
 
 from . import colors
 from .lego import Dimensions, FakeDimensions, DimensionsTagEvent
 from .nfc_tag import NFCTagManager, NFCTag, NFCTagOperationError
 from pubsub import pub
+from usb.core import USBError
 
 class MainLoop(threading.Thread):
     """
@@ -19,6 +22,7 @@ class MainLoop(threading.Thread):
         super().__init__(group=group, target=target, name=name, args=args, kwargs=kwargs, daemon=daemon)
         self.current_active_tags = set() # this may be better in the Dimensions
         self.do_loop = True
+        self.error_count = 0
 
     def init_app(self, app):
         """
@@ -64,7 +68,21 @@ class MainLoop(threading.Thread):
                 if random.randint(1, 10000) == 0:
                     self.logger.info("loop")
                 
-                tag_event = self.dimensions.get_tag_event()
+                try:
+                    tag_event = self.dimensions.get_tag_event()
+                except USBError as e:
+                    # This most likely means the pad has been disconnected. Either way,
+                    # we'll give it a chance to correct itself, but kill the process
+                    # if the error doesn't seem to resolve
+                    self.error_count = self.error_count + 1
+                    if self.error_count < self.USB_ERROR_THRESHOLD:
+                        self.logger.exception("Perhaps disconnected; trying again after a bit...")
+                        time.sleep(1)
+                    else:
+                        self.logger.exception("Likely unrecoverable, assuming dead; stopping the loop")
+                        # well, we tried a few times, kill the loop
+                        self.stop_loop()
+
                 if tag_event is None:
                     continue
 
