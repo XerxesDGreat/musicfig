@@ -6,7 +6,7 @@ import xled
 
 from .base import BasePlugin
 from ..lego import DimensionsTagEvent
-from ..nfc_tag import NFCTag, register_tag_type, NFCTagOperationError
+from ..nfc_tag import NFCTag, NFCTagOperationError
 
 class TwinklyTag(NFCTag):
     required_attributes = ["pattern"]

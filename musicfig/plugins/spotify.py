@@ -8,7 +8,7 @@ from .base import BasePlugin
 from .. import colors
 from ..lego import Dimensions
 from ..models import db, Song
-from ..nfc_tag import NFCTag, NFCTagOperationError, register_tag_type
+from ..nfc_tag import NFCTag, NFCTagOperationError
 from collections import namedtuple
 from pubsub import pub
 from tekore._convert import to_uri
