@@ -1,7 +1,7 @@
 from ctypes import ArgumentError
 from musicfig import colors
 from ..lego import DimensionsTagEvent
-from ..nfc_tag import NFCTag, NFCTagOperationError, register_tag_type
+from ..nfc_tag import NFCTag, NFCTagOperationError, NFCTagManager
 from pubsub import pub
 
 class PluginError(BaseException):
@@ -91,7 +91,7 @@ class BasePlugin:
         built, added, and acted upon
         """
         if self.tag_class is not None:
-            register_tag_type(self.tag_class)
+            NFCTagManager.register_tag_type(self.tag_class)
 
     def _get_success_pad_color(self):
         """ Returns the int tuple color (R, G, B) the pad should turn upon a tag add success """
