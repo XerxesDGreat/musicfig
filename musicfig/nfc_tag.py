@@ -211,7 +211,12 @@ class NFCTagManager():
     
     @classmethod
     def get_registered_tag_types(cls):
-        return cls.TAG_REGISTRY_MAP
+        """
+        Fetches a dictionary of all the registered tag types in the format `type_str` -> `type_class_obj`
+
+        Note 
+        """
+        return dict(sorted(cls.TAG_REGISTRY_MAP.items()))
 
     def should_import_file(self):
         """
