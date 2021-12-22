@@ -78,10 +78,10 @@ class MainLoop(threading.Thread):
                     # if the error doesn't seem to resolve
                     self.error_count = self.error_count + 1
                     if self.error_count < self.USB_ERROR_THRESHOLD:
-                        self.logger.exception("Perhaps disconnected; trying again after a bit...")
+                        self.logger.error("Perhaps disconnected; trying again after a bit...")
                         time.sleep(1)
                     else:
-                        self.logger.exception("Likely unrecoverable, assuming dead; stopping the loop")
+                        self.logger.error("Likely unrecoverable, assuming dead; stopping the loop")
                         # well, we tried a few times, kill the loop
                         self.stop_loop()
 
