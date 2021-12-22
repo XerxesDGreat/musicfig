@@ -1,5 +1,6 @@
-from .base import BasePlugin, PluginError
+import json
 
+from .base import BasePlugin
 from ..lego import DimensionsTagEvent
 from ..nfc_tag import NFCTag, NFCTagOperationError
 from ..webhook import PostMixin
@@ -14,6 +15,15 @@ class WebhookTag(NFCTag, PostMixin):
     for anything which needs this functionality
     """
     required_attributes = ["added_url"]
+
+    @classmethod
+    def get_attributes_description(cls):
+        return json.dumps({
+            "added_url": "[Required] The url to call when the tag is added",
+            "added_post_json": "[Optional] JSON payload to send to the added url call. Default is empty string",
+            "removed_url": "[Optional] The url to call when the tag is removed",
+            "removed_post_json": "[Optional] JSON payload to send with the removed url call. Only used when there is a removed_url defined. Default is empty string"
+        }, indent=4)
 
     def _init_attributes(self):
         super()._init_attributes()

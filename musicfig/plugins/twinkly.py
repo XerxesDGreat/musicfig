@@ -1,6 +1,5 @@
-import logging
+import json
 import os
-import random
 import time
 import xled
 
@@ -11,6 +10,13 @@ from ..nfc_tag import NFCTag, NFCTagOperationError
 class TwinklyTag(NFCTag):
     required_attributes = ["pattern"]
     DEFAULT_FPS = 30
+
+    @classmethod
+    def get_attributes_description(cls):
+        return json.dumps({
+            "pattern": "[Required] name of the pattern file to load, excluding the path",
+            "fps": "[Optional] how many frames per second the pattern should play at (default is 30)"
+        }, indent=4)
     
     def _init_attributes(self):
         super()._init_attributes()

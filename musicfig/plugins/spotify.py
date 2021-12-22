@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-
+import json
 import tekore as tk
 import unidecode
 
@@ -48,6 +47,13 @@ SpotifyClientConfig = namedtuple("SpotifyClientConfig", ["client_id", "client_se
 
 class SpotifyTag(NFCTag):
     required_attributes = ["spotify_uri"]
+
+    @classmethod
+    def get_attributes_description(cls):
+        return json.dumps({
+            "spotify_uri": '[Required] uri for the spotify resource; starts with "track", "album", etc',
+            "start_position_ms": '[Optional] offset from the beginning of the song to start playing; only works for songs. Default is 0'
+        }, indent=4)
 
     def _init_attributes(self):
         super()._init_attributes()
