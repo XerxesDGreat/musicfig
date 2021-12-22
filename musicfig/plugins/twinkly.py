@@ -3,7 +3,7 @@ import os
 import time
 import xled
 
-from .base import BasePlugin
+from .core import BasePlugin
 from ..lego import DimensionsTagEvent
 from ..nfc_tag import NFCTag, NFCTagOperationError
 

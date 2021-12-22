@@ -1,6 +1,6 @@
 import json
 
-from .base import BasePlugin
+from .core import BasePlugin
 from ..lego import DimensionsTagEvent
 from ..nfc_tag import NFCTag, NFCTagOperationError
 from ..webhook import PostMixin

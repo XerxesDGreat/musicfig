@@ -3,7 +3,7 @@ import tekore as tk
 import unidecode
 
 
-from .base import BasePlugin
+from .core import BasePlugin
 from .. import colors
 from ..lego import Dimensions
 from ..models import db, Song
