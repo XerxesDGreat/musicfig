@@ -169,6 +169,8 @@ class BasePlugin:
         """
         if not isinstance(nfc_tag, self.tag_class):
             return
+
+        self.dispatch_start_handling_event(tag_event)
         
         try:
             work_operation(tag_event, nfc_tag)
@@ -281,6 +283,15 @@ class BasePlugin:
         tag_event -- DimensionsTagEvent the event which triggered the failure 
         """
         pub.sendMessage("handler_response.remove.error", tag_event=tag_event)
+    
+    def dispatch_start_handling_event(self, tag_event:DimensionsTagEvent):
+        """
+        Publishes event for when processing of a tag events begins
+
+        Positional arguments:
+        tag_event -- DimensionsTagEvent the event which is being handled
+        """
+        pub.sendMessage("handler_response.processing_started", tag_event=tag_event, color=self._get_success_pad_color())
 
 
 class UnregisteredTagPlugin(BasePlugin):

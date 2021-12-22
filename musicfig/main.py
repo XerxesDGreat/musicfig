@@ -45,6 +45,7 @@ class MainLoop(threading.Thread):
         pub.subscribe(self.on_tag_added_success, "handler_response.add.success")
         pub.subscribe(self.on_tag_removed_success, "handler_response.remove.success")
         pub.subscribe(self.on_tag_removed_error, "handler_response.remove.error")
+        pub.subscribe(self.on_tag_being_processed, "handler_response.processing_started")
     
     def stop_loop(self):
         """ Sets a flag to stop the loop. Note that the loop will stop after the current iteration"""
@@ -129,10 +130,11 @@ class MainLoop(threading.Thread):
         Positional arguments:
         tag_event -- DimensionsTagEvent containing details about the event
         color -- optional int tuple representing which color the pad should become (R, G, B)
+                 If color is None, will not attempt to change the color
         """
-        color = color if color is not None else self.get_default_active_color()
-        self.dimensions.fade_pad_color(pad=tag_event.pad_num, pulse_time=10,
-                                       pulse_count=1, colour=color)
+        if color is not None:
+            self.dimensions.fade_pad_color(pad=tag_event.pad_num, pulse_time=10,
+                                           pulse_count=1, colour=color)
         self.logger.debug("tag response event handled: %s, color: %s", tag_event, color)
     
     def on_tag_removed_success(self, tag_event: DimensionsTagEvent):
@@ -155,6 +157,19 @@ class MainLoop(threading.Thread):
         """
         self.logger.debug("tag response event handled: %s", tag_event)
         self.error_flash(tag_event.pad_num)
+    
+    def on_tag_being_processed(self, tag_event: DimensionsTagEvent, color=None):
+        """
+        Handler for when a tag has begun to be processed
+
+        Positional arguments:
+        tag_event -- DimensionsTagEvent containing details about the event
+        color -- optional int tuple representing which color the pad should pulse (R, G, B)
+                 If color is None, will not attempt to change the color
+        """
+        if color is not None:
+            self.dimensions.fade_pad_color(pad=tag_event.pad_num, pulse_time=8, pulse_count=100, colour=color)
+        self.logger.debug("tag is currently being processed: %s, color: %s", tag_event, color)
 
     ###############################
     # Color handling
