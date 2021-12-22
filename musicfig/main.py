@@ -46,6 +46,7 @@ class MainLoop(threading.Thread):
         pub.subscribe(self.on_tag_removed_success, "handler_response.remove.success")
         pub.subscribe(self.on_tag_removed_error, "handler_response.remove.error")
         pub.subscribe(self.on_tag_being_processed, "handler_response.processing_started")
+        pub.subscribe(self.on_tag_created, "tag_created")
     
     def stop_loop(self):
         """ Sets a flag to stop the loop. Note that the loop will stop after the current iteration"""
@@ -170,6 +171,10 @@ class MainLoop(threading.Thread):
         if color is not None:
             self.dimensions.fade_pad_color(pad=tag_event.pad_num, pulse_time=8, pulse_count=100, colour=color)
         self.logger.debug("tag is currently being processed: %s, color: %s", tag_event, color)
+    
+    def on_tag_created(self):
+        """ Handler for when a new tag has been created """
+        self.dimensions.flash_pad_color(pad=Dimensions.ALL_PAD, on_length=8, off_length=8, pulse_count=4, colour=colors.GREEN)
 
     ###############################
     # Color handling

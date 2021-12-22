@@ -10,6 +10,7 @@ from flask import \
     request, \
     session, \
     url_for
+from pubsub import pub
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +64,7 @@ def create_tag():
     try:
         nfc_tag = NFCTagManager.get_instance().create_nfc_tag(tag_id, tag_type, name=name, description=description, attributes=attributes)
         session["created_tag_id"] = nfc_tag.identifier
+        pub.sendMessage("tag_created")
     except Exception as e:
         logger.exception("failed to create tag; found error [%s]", str(e))
         return
