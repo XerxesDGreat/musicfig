@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import json
 import logging
 import os
@@ -9,7 +7,6 @@ import yaml
 
 from .socketio import socketio
 from .models import db, NFCTagModel
-from .webhook import PostMixin
 from flask import current_app
 from musicfig import colors
 from sqlalchemy import func
@@ -107,19 +104,6 @@ class UnknownTypeTag(NFCTag):
         return False
 
 
-class SlackTag(NFCTag, PostMixin):
-    required_attributes = ["text"]
-    
-    def _init_attributes(self):
-        super()._init_attributes()
-        self.webhook_url = current_app.config.get("SLACK_WEBHOOK_URL")
-        self.text = self.attributes["text"]
-    
-    def on_add(self):
-        super().on_add()
-        self.post_json(self.webhook_url, {"text": self.text})
-
-
 class NFCTagStore():
     tag_cache = {}
 
@@ -194,13 +178,6 @@ class NFCTagStore():
         return model
 
 
-TAG_REGISTRY_MAP = {
-    "slack": SlackTag,
-}
-
-def register_tag_type(nfc_tag_class):
-    TAG_REGISTRY_MAP[nfc_tag_class.get_friendly_name()] = nfc_tag_class
-
 class NFCTagManager():
     # todo; merge this class with NFCTagStore
     def __init__(self):
@@ -219,7 +196,22 @@ class NFCTagManager():
         if cls.instance is None:
             cls.instance = NFCTagManager()
         return cls.instance
-
+    
+    TAG_REGISTRY_MAP = {}
+    
+    @classmethod
+    def register_tag_type(cls, nfc_tag_class):
+        if not issubclass(nfc_tag_class, NFCTag):
+            raise TypeError("`nfc_tag_class` must be a class object which extends NFCTag")
+        cls.TAG_REGISTRY_MAP[nfc_tag_class.get_friendly_name()] = nfc_tag_class
+    
+    @classmethod
+    def get_tag_class_from_tag_type(cls, nfc_tag_type: str):
+        return cls.TAG_REGISTRY_MAP.get(nfc_tag_type, UnknownTypeTag)
+    
+    @classmethod
+    def get_registered_tag_types(cls):
+        return cls.TAG_REGISTRY_MAP
 
     def should_import_file(self):
         """
@@ -248,7 +240,7 @@ class NFCTagManager():
         # TODO build a composite tag in case we want to do e.g. spotify + webhook;
         # perhaps do a list of types or something?
 
-        nfc_tag_class = TAG_REGISTRY_MAP.get(nfc_tag_model.type, UnknownTypeTag)
+        nfc_tag_class = NFCTagManager.get_tag_class_from_tag_type(nfc_tag_model.type)
         return nfc_tag_class(nfc_tag_model.id,
                              name=nfc_tag_model.name,
                              description=nfc_tag_model.description,
@@ -288,9 +280,9 @@ class NFCTagManager():
     def create_nfc_tag(self, id, tag_type, name=None, description=None, attributes=None):
         if id is None or tag_type is None:
             raise ValueError("must include both id and tag_type")
-        if tag_type not in TAG_REGISTRY_MAP:
+        if NFCTagManager.get_tag_class_from_tag_type(tag_type) is UnknownTypeTag:
             raise ValueError("tag_type was %s, must be one of the following: [%s]",
-                                tag_type, "],[".join(TAG_REGISTRY_MAP.keys()))
+                                tag_type, "],[".join(NFCTagManager.get_registered_tag_types().keys()))
         if isinstance(attributes, dict):
             attributes = json.dumps(dict)
 
