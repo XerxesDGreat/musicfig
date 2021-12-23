@@ -5,12 +5,12 @@ import logging
 from . import web
 from ..nfc_tag import NFCTagStore, NFCTagManager
 from flask import \
-    current_app, \
     redirect, \
     render_template, \
     request, \
     session, \
     url_for
+from pubsub import pub
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,15 @@ def tag_list():
 @web.route("/tags/create", methods=["GET"])
 def tag_create_form():
     new_tag_id = request.args.get("tag_id")
-    return render_template("create_tag.html", tag_id=new_tag_id)
+    tag_registry_map = NFCTagManager.get_registered_tag_types()
+    tag_names = sorted(tag_registry_map.keys())
+
+    # I am too tired to continue finding a one-liner for this
+    tag_descriptions_by_name = {}
+    for tag_name in tag_names:
+        tag_descriptions_by_name[tag_name] = tag_registry_map[tag_name].get_attributes_description()
+    return render_template("create_tag.html", tag_id=new_tag_id, tag_names=tag_names,
+                           tag_descriptions_by_name=tag_descriptions_by_name)
 
 @web.route("/tags/create", methods=["POST"])
 def create_tag():
@@ -56,6 +64,7 @@ def create_tag():
     try:
         nfc_tag = NFCTagManager.get_instance().create_nfc_tag(tag_id, tag_type, name=name, description=description, attributes=attributes)
         session["created_tag_id"] = nfc_tag.identifier
+        pub.sendMessage("tag_created")
     except Exception as e:
         logger.exception("failed to create tag; found error [%s]", str(e))
         return

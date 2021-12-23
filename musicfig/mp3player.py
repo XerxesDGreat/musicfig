@@ -270,3 +270,97 @@ class Player:
 
     def playlist(self, filename_list):
         self.command_queue.put((Player.Command.PLAYLIST, filename_list))
+    
+
+
+class Deprecated_Do_Not_Use_Without_Major_Refactor:
+    """
+    This is all taken from the original lego loop; it should be updated into a local
+    playback manager.
+    """
+
+    def initMp3(self):
+        self.p = mp3player.Player()
+        def monitor():
+            global mp3state
+            global mp3elapsed
+            while True:
+                state = self.p.event_queue.get(block=True, timeout=None)
+                mp3state = str(state[0]).replace('PlayerState.','')
+                mp3elapsed = state[1]
+            logger.info('thread exited.')
+        threading.Thread(target=monitor, name="monitor").daemon = True
+        threading.Thread(target=monitor, name="monitor").start() 
+
+    def startMp3(self, filename, mp3_dir, is_playlist=False):
+        global mp3_duration
+        # load an mp3 file
+        if not is_playlist:
+            mp3file = mp3_dir + filename
+            logger.info('Playing %s.' % filename)
+            self.p.open(mp3file)
+            self.p.play()
+
+            audio = MP3(mp3file)
+            mp3_duration = audio.info.length
+            #self.startLightshow(mp3_duration * 1000)
+        else:
+            self.p.playlist(filename)
+            mp3_duration = 0
+            if filename:
+                for file_mp3 in filename:
+                    audio = MP3(file_mp3)
+                    mp3_duration = mp3_duration + audio.info.length
+            else:
+                logger.info('Check the folder, maybe empty!!!')
+            #self.startLightshow(mp3_duration * 1000)
+
+    def stopMp3(self):
+        global mp3state
+        try:
+            #self.p.stop()
+            mp3state = 'STOPPED'
+        except Exception:
+            pass
+
+    def pauseMp3(self):
+        global mp3state
+        if 'PLAYING' in mp3state:
+            self.p.pause()
+            logger.info('Track paused.')
+            mp3state = 'PAUSED'
+            return
+
+    def playMp3(self, filename, mp3_dir):
+        global t
+        global mp3state
+        self.spotify_client.pause()
+        if previous_tag == current_tag and 'PAUSED' in ("%s" % mp3state):
+            # Resume
+            logger.info("Resuming mp3 track.")
+            self.p.play()
+            remaining = mp3_duration - mp3elapsed
+            if remaining >= 0.1:
+                self.startLightshow(remaining * 1000)
+                return
+        # New play 
+        self.stopMp3()
+        self.startMp3(filename, mp3_dir)
+        mp3state = 'PLAYING'
+
+    def playPlaylist(self, playlist_filename, mp3_dir, shuffle=False):
+        global mp3state
+        list_mp3_to_play = []
+        self.spotify_client.pause()
+
+        mp3list = mp3_dir +'/'+ playlist_filename + '/*.mp3'
+        ##logger.debug(mp3list)
+
+        list_mp3_to_play = glob.glob(mp3list)
+
+        if shuffle:
+            random.shuffle(list_mp3_to_play)
+        ##logger.debug(list_mp3_to_play)
+
+        self.startMp3(list_mp3_to_play, mp3_dir, True)
+        mp3state = 'PLAYING'

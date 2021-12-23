@@ -2,10 +2,18 @@
 import os
 import logging
 
+from .database import db
+from .main import MainLoop
+from .plugins import spotify_client, \
+                     webhook_plugin, \
+                     twinkly_plugin, \
+                     unregistered_tag_plugin
+from .socketio import socketio
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 from logging.config import dictConfig
+from pubsub import pub
 from threading import Thread
 
 dictConfig({
@@ -36,6 +44,7 @@ dictConfig({
 })
 
 logging.getLogger('werkzeug').disabled = True
+print(__name__)
 logger = logging.getLogger(__name__)
 os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 
@@ -56,12 +65,30 @@ os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 #     pass
 app_version = "heavy development"
 
-db = SQLAlchemy()
-socketio = SocketIO()
-lego_thread = Thread()
+# this is where you will put all your plugins
+custom_plugins = [
+    spotify_client,
+    twinkly_plugin,
+    webhook_plugin,
+]
+
+# leave these alone
+registered_plugins = [
+    unregistered_tag_plugin,
+]
+registered_plugins.extend(custom_plugins)
+
+#socketio = SocketIO()
+lego_thread = MainLoop()
 
 from . import models
 #from . import events
+
+def l(tag_event, nfc_tag):
+    logger.info("%s, %s", tag_event, nfc_tag)
+
+pub.subscribe(l, 'tag.added')
+pub.subscribe(l, 'tag.removed')
 
 def init_app():
     app = Flask(__name__,
@@ -71,40 +98,28 @@ def init_app():
 
     db.init_app(app)
     socketio.init_app(app)
+    lego_thread.init_app(app)
+
+    # Initializes all of the plugins. Any registration of models, attaching
+    # of listeners, etc. should be done within each plugins' `init_app()`
+    for plugin in registered_plugins:
+        plugin.init_app(app)
 
     @app.errorhandler(404)
     def not_found(error):
         return render_template('404.html'), 404
-
-    class FlaskThread(Thread):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.app = app
-        
-        def run(self):
-            with self.app.app_context():
-                super().run()
 
     with app.app_context(), app.test_request_context():
         from .web import web as web_blueprint
         app.register_blueprint(web_blueprint)
 
         db.create_all()
-
-        from .lego import Base
-        def connect_lego():
-            global lego_thread
-            lego_thread = FlaskThread(target=Base)
-            lego_thread.daemon = True
-            lego_thread.start()
-
-        connect_lego()
+        lego_thread.daemon = True
+        lego_thread.start()
 
         from .events import NFCTagHandler
         socketio.on_namespace(NFCTagHandler())
 
         logger.info('Musicfig %s started.' % app_version)
-        if app.config['CLIENT_ID']:
-            logger.info('To activate Spotify visit: %s' % app.config['REDIRECT_URI'].replace('callback',''))
 
     return app
