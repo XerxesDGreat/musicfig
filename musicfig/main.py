@@ -37,7 +37,7 @@ class MainLoop(threading.Thread):
         """
         self.app = app
         self.logger = app.logger
-        self.dimensions = FakeDimensions(app) if app.config.get("USE_MOCK_PAD") else Dimensions(app)
+        self.dimensions = None
         with app.app_context():
             # @todo make this configurable somehow
             self.nfc_tag_manager = NFCTagManager.get_instance() # maybe turn this into an init_app() as well
@@ -57,6 +57,8 @@ class MainLoop(threading.Thread):
     def _try_to_connect(self):
         try:
             self.dimensions = FakeDimensions(self.app) if self.app.config.get("USE_MOCK_PAD") else Dimensions(self.app)
+            self.logger.info("Pad discovered; initializing now")
+            self.dimensions.change_pad_color(Dimensions.ALL_PAD, self.get_idle_color())
         except Exception as e:
             self.logger.warning("Failed to find dimensions pad")
             time.sleep(4)
@@ -67,7 +69,6 @@ class MainLoop(threading.Thread):
         
         try:
             tag_event = self.dimensions.get_tag_event()
-            self.dimensions.change_pad_color(Dimensions.ALL_PAD, self.get_idle_color())
         except USBError as e:
             # This most likely means the pad has been disconnected. Either way,
             # we'll give it a chance to correct itself, but kill the process
@@ -80,6 +81,7 @@ class MainLoop(threading.Thread):
                 self.logger.error("Likely unrecoverable, assuming dead; stopping the loop")
                 # well, we tried a few times, kill the loop
                 self.dimensions = None
+            return
 
         if tag_event is None:
             return

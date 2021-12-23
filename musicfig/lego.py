@@ -102,7 +102,7 @@ class Dimensions(BaseDimensions):
         try:
            self.dev = self.init_usb()
         except Exception as e:
-            self.logger.exception("failed initialization: %s", e)
+            self.logger.error("failed initialization: %s", e)
             raise e
 
     def init_usb(self):
